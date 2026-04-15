@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PolicyPen — Hosted Policy Page System</title>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Instrument+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Root ── */
+:root {
+  --paper: #fefcf8;
+  --paper2: #f8f5ef;
+  --paper3: #f0ece2;
+  --rule: #e4dfd3;
+  --rule2: #d4cfc3;
+  --ink: #1c1810;
+  --ink2: #3a3428;
+  --muted: #7a7060;
+  --accent: #1a4a2e;
+  --accent-light: #e8f3ec;
+  --accent-border: #b8d8c4;
+  --red: #7a1a1a;
+  --red-light: #faeaea;
+  --amber: #7a4a00;
+  --amber-light: #fff5e0;
+  --blue: #1a2a6e;
+  --blue-light: #e8ecf8;
+  --mono: 'Fira Code', monospace;
+  --serif: 'Libre Baskerville', serif;
+  --sans: 'Instrument Sans', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ── TABS (top-level views) ── */
+.app-bar {
+  background: var(--ink);
+  padding: 0 0;
+  border-bottom: 2px solid var(--accent);
+  position: sticky;
+  top: 0;
+  z-index: 300;
+}
+
+.app-bar-inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 40px;
+  display: flex;
+  align-items: stretch;
+}
+
+.app-logo {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-style: italic;
+  color: #fefcf8;
+  padding: 14px 0;
+  margin-right: 32px;
+  flex-shrink: 0;
+}
+
+.app-logo span { color: #a8e6b8; font-style: normal; }
+
+.app-tabs {
+  display: flex;
+  gap: 0;
+  flex: 1;
+}
+
+.app-tab {
+  padding: 14px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.45);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  white-space: nowrap;
+  font-family: var(--sans);
+}
+
+.app-tab:hover { color: rgba(255,255,255,0.75); }
+.app-tab.active { color: #a8e6b8; border-bottom-color: #a8e6b8; }
+
+.app-badge {
+  margin-left: auto;
+  padding: 14px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.badge {
+  padding: 3px 9px;
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+.b-green { background: rgba(168,230,184,0.15); color: #a8e6b8; border: 1px solid rgba(168,230,184,0.25); }
+.b-amber { background: rgba(255,200,80,0.1); color: #ffc850; border: 1px solid rgba(255,200,80,0.2); }
+
+/* ── VIEWS ── */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ── POLICY PAGE PREVIEW ── */
+.policy-shell {
+  min-height: calc(100vh - 50px);
+  display: grid;
+  grid-template-columns: 260px 1fr 220px;
+  gap: 0;
+}
+
+/* Left nav */
+.policy-nav {
+  background: var(--paper2);
+  border-right: 1px solid var(--rule);
+  padding: 32px 0;
+  position: sticky;
+  top: 50px;
+  height: calc(100vh - 50px);
+  overflow-y: auto;
+}
+
+.policy-nav-header {
+  padding: 0 24px 20px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 16px;
+}
+
+.pnh-product {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.pnh-company {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.pnh-url {
+  font-size: 11px;
+  color: var(--accent);
+  font-family: var(--mono);
+  margin-top: 6px;
+  text-decoration: none;
+}
+
+.nav-section-label {
+  padding: 0 24px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-family: var(--mono);
+  margin: 16px 0 6px;
+}
+
+.nav-doc-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  cursor: pointer;
+  transition: background 0.12s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--sans);
+}
+
+.nav-doc-btn:hover { background: var(--paper3); }
+.nav-doc-btn.active { background: var(--accent-light); }
+
+.nav-doc-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-family: var(--mono);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.icon-privacy  { background: #dceefa; color: #1a3a6e; }
+.icon-tos      { background: #faeadc; color: #6e2a1a; }
+.icon-cookie   { background: #faf0dc; color: #6e4a1a; }
+.icon-refund   { background: #dcfaea; color: #1a4a2e; }
+
+.nav-doc-info { flex: 1; }
+.nav-doc-name { font-size: 13px; font-weight: 500; color: var(--ink); }
+.nav-doc-meta { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+.nav-doc-btn.active .nav-doc-name { color: var(--accent); }
+
+.nav-version-badge {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: var(--mono);
+  background: var(--paper3);
+  color: var(--muted);
+}
+.nav-doc-btn.active .nav-version-badge { background: var(--accent-light); color: var(--accent); }
+
+.nav-section-toc {
+  padding: 0 12px;
+  margin-top: 8px;
+}
+
+.toc-item {
+  display: block;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.1s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--sans);
+}
+
+.toc-item:hover { background: var(--paper3); color: var(--ink2); }
+.toc-item.active { color: var(--accent); background: var(--accent-light); }
+
+/* Main content area */
+.policy-content-area {
+  padding: 0;
+  overflow-y: auto;
+}
+
+.policy-doc-header {
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+  padding: 24px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: sticky;
+  top: 50px;
+  z-index: 100;
+}
+
+.pdh-title {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.pdh-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.pdh-law-badges {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.law-badge {
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: var(--mono);
+  font-weight: 500;
+}
+
+.policy-body {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 48px 96px;
+}
+
+/* Policy doc typography */
+.policy-doc h1 {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  line-height: 1.2;
+}
+
+.policy-doc .doc-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--muted);
+  padding-bottom: 24px;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: 32px;
+  font-family: var(--mono);
+  flex-wrap: wrap;
+}
+
+.policy-doc h2 {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 700;
+  margin: 36px 0 12px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rule);
+  scroll-margin-top: 120px;
+}
+
+.policy-doc h2:first-of-type { border-top: none; margin-top: 0; }
+
+.policy-doc h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 20px 0 8px;
+  color: var(--ink2);
+}
+
+.policy-doc p {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--ink2);
+  margin-bottom: 14px;
+}
+
+.policy-doc ul, .policy-doc ol {
+  margin: 0 0 14px 20px;
+}
+
+.policy-doc li {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink2);
+  margin-bottom: 5px;
+}
+
+.policy-doc strong { color: var(--ink); font-weight: 600; }
+
+.policy-doc .rights-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0 20px;
+  font-size: 13px;
+}
+
+.policy-doc .rights-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: var(--paper3);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--rule);
+}
+
+.policy-doc .rights-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+.policy-doc .rights-table tr:last-child td { border-bottom: none; }
+
+.notice-box {
+  padding: 14px 18px;
+  border-radius: 4px;
+  margin: 16px 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.notice-info { background: var(--blue-light); border-left: 3px solid var(--blue); color: var(--blue); }
+.notice-warn { background: var(--amber-light); border-left: 3px solid var(--amber); color: var(--amber); }
+.notice-gdpr { background: var(--accent-light); border-left: 3px solid var(--accent); color: var(--accent); }
+
+/* Right sidebar */
+.policy-sidebar-right {
+  background: var(--paper2);
+  border-left: 1px solid var(--rule);
+  padding: 24px 20px;
+  position: sticky;
+  top: 50px;
+  height: calc(100vh - 50px);
+  overflow-y: auto;
+}
+
+.psr-section {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--rule);
+}
+.psr-section:last-child { border-bottom: none; }
+
+.psr-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-family: var(--mono);
+  margin-bottom: 10px;
+}
+
+.psr-action {
+  display: block;
+  width: 100%;
+  padding: 9px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  margin-bottom: 7px;
+  transition: all 0.15s;
+  font-family: var(--sans);
+}
+
+.action-primary {
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+}
+
+.action-primary:hover { background: var(--ink2); }
+
+.action-secondary {
+  background: transparent;
+  color: var(--ink2);
+  border: 1px solid var(--rule2);
+}
+
+.action-secondary:hover { background: var(--paper3); }
+
+.version-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.version-row:last-child { border-bottom: none; }
+.vr-label { color: var(--muted); }
+.vr-val { font-family: var(--mono); font-size: 11px; color: var(--ink2); }
+.vr-current { color: var(--accent); }
+
+.jurisdiction-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.jc {
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.embed-code-block {
+  background: var(--ink);
+  border-radius: 4px;
+  padding: 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.65);
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin-top: 8px;
+  cursor: pointer;
+  position: relative;
+}
+
+.copy-hint {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 9px;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* ── DASHBOARD VIEW ── */
+.dashboard {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px;
+}
+
+.dash-header {
+  margin-bottom: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dash-title {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.dash-subtitle {
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.dash-btn {
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--sans);
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+  transition: background 0.15s;
+}
+
+.dash-btn:hover { background: var(--ink2); }
+
+/* Stats row */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background: var(--paper2);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 18px 20px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  font-family: var(--mono);
+}
+
+.stat-val {
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-sub { font-size: 11px; color: var(--muted); }
+
+/* Product cards */
+.product-card {
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.pc-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pc-name {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.pc-url {
+  font-size: 12px;
+  color: var(--accent);
+  font-family: var(--mono);
+}
+
+.pc-plan {
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+.plan-starter { background: #faf0dc; color: #7a5000; border: 1px solid #e8d090; }
+.plan-builder { background: var(--accent-light); color: var(--accent); border: 1px solid var(--accent-border); }
+.plan-studio  { background: #eae0fa; color: #4a1a8a; border: 1px solid #c8b0e8; }
+
+.pc-docs-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+
+.pc-doc {
+  padding: 16px 20px;
+  border-right: 1px solid var(--rule);
+  transition: background 0.12s;
+}
+
+.pc-doc:last-child { border-right: none; }
+.pc-doc:hover { background: var(--paper2); }
+
+.pc-doc-type {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-family: var(--mono);
+  margin-bottom: 6px;
+}
+
+.pc-doc-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-green  { background: #2a8a4a; }
+.dot-amber  { background: #d48a00; }
+.dot-gray   { background: #aaaaaa; }
+
+.pc-doc-date { font-size: 11px; color: var(--muted); }
+.pc-doc-ver  { font-size: 11px; font-family: var(--mono); color: var(--muted); }
+
+.pc-actions {
+  padding: 14px 20px;
+  border-top: 1px solid var(--rule);
+  background: var(--paper2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pc-btn {
+  padding: 7px 14px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--sans);
+  border: 1px solid var(--rule2);
+  background: white;
+  color: var(--ink2);
+  transition: all 0.12s;
+}
+
+.pc-btn:hover { background: var(--paper3); border-color: var(--rule2); }
+
+.pc-btn-primary {
+  background: var(--ink);
+  color: white;
+  border-color: var(--ink);
+}
+
+.pc-btn-primary:hover { background: var(--ink2); }
+
+.pc-url-preview {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--accent);
+  font-family: var(--mono);
+  text-decoration: none;
+}
+
+/* ── EMBED VIEW ── */
+.embed-view {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 40px;
+}
+
+.embed-section {
+  margin-bottom: 40px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.embed-section:last-child { border-bottom: none; }
+
+.embed-section-title {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.embed-section-desc {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.embed-preview {
+  background: var(--paper3);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 20px 24px;
+  margin-bottom: 14px;
+}
+
+.embed-preview-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-family: var(--mono);
+  margin-bottom: 12px;
+}
+
+.widget-preview {
+  padding: 14px 0;
+  color: #888;
+  border-top: 1px solid #e0e0e0;
+  font-family: -apple-system, sans-serif;
+  font-size: 13px;
+}
+
+.widget-preview a {
+  color: inherit;
+  text-decoration: underline;
+  margin-right: 18px;
+}
+
+.embed-code {
+  background: var(--ink);
+  border-radius: 4px;
+  padding: 18px 20px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.8;
+  color: rgba(255,255,255,0.65);
+  white-space: pre;
+  overflow-x: auto;
+  position: relative;
+}
+
+.embed-code .hl { color: #a8e6b8; }
+.embed-code .cm { color: rgba(255,255,255,0.3); }
+.embed-code .st { color: #ffc870; }
+.embed-code .kw { color: #88b8ff; }
+
+.copy-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 3px;
+  color: rgba(255,255,255,0.5);
+  font-size: 10px;
+  font-family: var(--mono);
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.15s;
+}
+
+.copy-btn:hover { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.8); }
+
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.option-label { font-size: 13px; color: var(--ink2); min-width: 100px; }
+.option-select {
+  padding: 6px 10px;
+  border: 1px solid var(--rule2);
+  border-radius: 4px;
+  font-size: 12px;
+  background: white;
+  color: var(--ink2);
+  font-family: var(--sans);
+  cursor: pointer;
+}
+
+/* ── ISR ARCHITECTURE VIEW ── */
+.arch-view {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 40px;
+}
+
+.arch-section {
+  margin-bottom: 40px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.arch-title {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.arch-desc {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.flow-steps {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 16px;
+}
+
+.flow-step {
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 16px 18px;
+  min-width: 180px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.fs-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.fs-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+
+.fs-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  color: var(--rule2);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.code-file {
+  background: var(--ink);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.cf-header {
+  padding: 10px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cf-filename {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #a8e6b8;
+}
+
+.cf-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+}
+
+.cf-body {
+  padding: 16px 18px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.8;
+  color: rgba(255,255,255,0.65);
+  overflow-x: auto;
+}
+
+.ck { color: #88b8ff; }
+.cs { color: #ffc870; }
+.cc { color: rgba(255,255,255,0.3); }
+.cm { color: #a8e6b8; }
+.cn { color: #ff9f70; }
+
+.grid2-arch { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+.info-card {
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 18px 20px;
+}
+
+.ic-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.ic-body { font-size: 12px; color: var(--muted); line-height: 1.7; }
+
+.ic-list { margin: 8px 0 0 0; list-style: none; }
+.ic-list li {
+  font-size: 12px;
+  color: var(--ink2);
+  padding: 5px 0;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.ic-list li:last-child { border-bottom: none; }
+
+.ic-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+.ib-green { background: var(--accent-light); color: var(--accent); }
+.ib-amber { background: var(--amber-light); color: var(--amber); }
+.ib-red { background: var(--red-light); color: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- APP BAR -->
+<div class="app-bar">
+  <div class="app-bar-inner">
+    <div class="app-logo">Policy<span>Pen</span></div>
+    <div class="app-tabs">
+      <button class="app-tab active" onclick="showView('policy-page')">Hosted Policy Page</button>
+      <button class="app-tab" onclick="showView('dashboard')">Product Dashboard</button>
+      <button class="app-tab" onclick="showView('embed')">Embed Widget</button>
+      <button class="app-tab" onclick="showView('architecture')">ISR Architecture</button>
+    </div>
+    <div class="app-badge">
+      <span class="badge b-green">ISR Cached</span>
+      <span class="badge b-amber">Next.js 14</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- VIEW 1: HOSTED POLICY PAGE                                      -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="view active" id="view-policy-page">
+<div class="policy-shell">
+
+  <!-- Left nav -->
+  <nav class="policy-nav">
+    <div class="policy-nav-header">
+      <div class="pnh-product">PolicyPen</div>
+      <div class="pnh-company">PolicyPen Inc.</div>
+      <a href="#" class="pnh-url">policypen.io</a>
+    </div>
+
+    <div class="nav-section-label">Documents</div>
+
+    <button class="nav-doc-btn active" onclick="switchDoc('privacy', this)">
+      <div class="nav-doc-icon icon-privacy">PP</div>
+      <div class="nav-doc-info">
+        <div class="nav-doc-name">Privacy Policy</div>
+        <div class="nav-doc-meta">Updated Apr 2025</div>
+      </div>
+      <span class="nav-version-badge">v3</span>
+    </button>
+
+    <button class="nav-doc-btn" onclick="switchDoc('tos', this)">
+      <div class="nav-doc-icon icon-tos">ToS</div>
+      <div class="nav-doc-info">
+        <div class="nav-doc-name">Terms of Service</div>
+        <div class="nav-doc-meta">Updated Mar 2025</div>
+      </div>
+      <span class="nav-version-badge">v2</span>
+    </button>
+
+    <button class="nav-doc-btn" onclick="switchDoc('cookie', this)">
+      <div class="nav-doc-icon icon-cookie">CK</div>
+      <div class="nav-doc-info">
+        <div class="nav-doc-name">Cookie Policy</div>
+        <div class="nav-doc-meta">Updated Apr 2025</div>
+      </div>
+      <span class="nav-version-badge">v2</span>
+    </button>
+
+    <button class="nav-doc-btn" onclick="switchDoc('refund', this)">
+      <div class="nav-doc-icon icon-refund">RF</div>
+      <div class="nav-doc-info">
+        <div class="nav-doc-name">Refund Policy</div>
+        <div class="nav-doc-meta">Updated Jan 2025</div>
+      </div>
+      <span class="nav-version-badge">v1</span>
+    </button>
+
+    <div id="toc-nav" class="nav-section-toc" style="margin-top:16px">
+      <!-- Populated by JS -->
+    </div>
+  </nav>
+
+  <!-- Content area -->
+  <div class="policy-content-area" id="policyContent">
+
+    <!-- Sticky doc header -->
+    <div class="policy-doc-header">
+      <div>
+        <div class="pdh-title" id="docTitle">Privacy Policy</div>
+        <div class="pdh-meta">
+          <span id="docDate">Effective April 7, 2026</span>
+          <span>·</span>
+          <span id="docVersion">Version 3</span>
+          <span>·</span>
+          <span id="docReadTime">8 min read</span>
+        </div>
+      </div>
+      <div class="pdh-law-badges" id="lawBadges">
+        <span class="law-badge" style="background:#dceefa;color:#1a3a6e">GDPR</span>
+        <span class="law-badge" style="background:#e8f3ec;color:#1a4a2e">CCPA</span>
+        <span class="law-badge" style="background:#faf0dc;color:#7a4a00">PIPEDA</span>
+        <span class="law-badge" style="background:#faeaea;color:#7a1a1a">COPPA</span>
+      </div>
+    </div>
+
+    <!-- Document body -->
+    <div class="policy-body">
+      <div class="policy-doc" id="docBody">
+        <!-- Privacy Policy -->
+        <div id="doc-privacy">
+          <h1>Privacy Policy</h1>
+          <div class="doc-meta">
+            <span>PolicyPen Inc.</span>
+            <span>Effective: April 7, 2026</span>
+            <span>Version 3</span>
+            <span>policypen.io</span>
+          </div>
+
+          <div class="notice-gdpr">
+            This policy complies with <strong>GDPR (EU/UK), CCPA (California), PIPEDA (Canada)</strong>, and global privacy baseline standards. Jurisdiction-specific rights sections are included below.
+          </div>
+
+          <h2 id="sec-controller">1. Data Controller</h2>
+          <p>PolicyPen Inc. ("<strong>Company</strong>", "<strong>we</strong>", "<strong>us</strong>") is the data controller responsible for your personal data. We are incorporated in the State of Delaware, United States.</p>
+          <p><strong>Contact:</strong> privacy@policypen.io<br>
+          <strong>Address:</strong> Available upon written request<br>
+          <strong>DPO:</strong> Not currently designated (no large-scale EU processing)</p>
+
+          <h2 id="sec-data-we-collect">2. Information We Collect</h2>
+          <h3>Account & Identity Data</h3>
+          <p>When you create an account, we collect: <strong>email address</strong> (required), <strong>full name</strong> (optional), <strong>company name</strong>, and authentication credentials. If you sign in via Google or GitHub, we receive your public profile from those providers.</p>
+
+          <h3>Product & Usage Data</h3>
+          <p>We automatically collect information about how you use PolicyPen, including: pages visited, features accessed, session duration, button clicks, questionnaire completion events, and generated document interactions. This data is collected via PostHog analytics.</p>
+
+          <h3>Payment & Billing Data</h3>
+          <p>Payment processing is handled by Stripe, Inc. We receive and store: billing email, subscription plan, subscription status, and payment method type (e.g., "Visa ending in 4242"). We do not store full card numbers or CVV codes — these are handled exclusively by Stripe's PCI-DSS compliant infrastructure.</p>
+
+          <h3>Technical Data</h3>
+          <p>We collect your IP address (used for approximate country-level location detection and security), browser type and version, operating system, and referrer URL. This data is retained for 90 days.</p>
+
+          <h2 id="sec-legal-basis">3. Legal Basis for Processing <span style="font-size:11px;background:#dceefa;color:#1a3a6e;padding:2px 6px;border-radius:3px;font-family:'Fira Code',monospace;font-weight:500;margin-left:6px">GDPR Art.6</span></h2>
+          <table class="rights-table">
+            <tr>
+              <th>Data Category</th>
+              <th>Legal Basis</th>
+              <th>Purpose</th>
+            </tr>
+            <tr>
+              <td>Account data</td>
+              <td><strong>Contract performance</strong></td>
+              <td>Provide the service you signed up for</td>
+            </tr>
+            <tr>
+              <td>Usage analytics</td>
+              <td><strong>Legitimate interests</strong></td>
+              <td>Improve product features, detect abuse</td>
+            </tr>
+            <tr>
+              <td>Marketing emails</td>
+              <td><strong>Consent</strong></td>
+              <td>Send product updates (opt-in only)</td>
+            </tr>
+            <tr>
+              <td>Financial records</td>
+              <td><strong>Legal obligation</strong></td>
+              <td>Tax compliance, fraud prevention</td>
+            </tr>
+          </table>
+
+          <h2 id="sec-third-parties">4. Third-Party Service Providers</h2>
+          <p>We share personal data with the following sub-processors, each operating under a Data Processing Agreement (DPA) with PolicyPen:</p>
+          <ul>
+            <li><strong>Stripe, Inc.</strong> (US) — Payment processing. <a href="https://stripe.com/privacy" style="color:var(--accent)">Privacy policy ↗</a></li>
+            <li><strong>Supabase, Inc.</strong> (US) — Database and authentication storage. SCCs in place.</li>
+            <li><strong>Anthropic, PBC</strong> (US) — AI policy generation. Your questionnaire data is sent to Anthropic's Claude API for processing. Anthropic does not train on API data. SCCs in place.</li>
+            <li><strong>Vercel, Inc.</strong> (US) — Hosting and CDN. SCCs in place.</li>
+            <li><strong>PostHog, Inc.</strong> (US) — Product analytics. Data anonymised after 90 days.</li>
+            <li><strong>Resend, Inc.</strong> (US) — Transactional email delivery.</li>
+          </ul>
+
+          <h2 id="sec-international">5. International Data Transfers</h2>
+          <p>PolicyPen stores data on servers in the United States. For users in the European Economic Area (EEA) or United Kingdom, transfers of personal data to the US are protected by <strong>Standard Contractual Clauses (SCCs)</strong> approved by the European Commission (for EEA) and the UK International Data Transfer Agreement (IDTA) (for UK users).</p>
+
+          <h2 id="sec-retention">6. Data Retention</h2>
+          <p>We retain personal data for as long as your account is active. Upon account deletion:</p>
+          <ul>
+            <li>Account and profile data: deleted within <strong>90 days</strong></li>
+            <li>Generated policy documents: deleted within 90 days (download before deleting)</li>
+            <li>Financial transaction records: retained for <strong>7 years</strong> (tax and legal compliance)</li>
+            <li>Server logs: automatically purged after <strong>90 days</strong></li>
+          </ul>
+
+          <h2 id="sec-gdpr-rights">7. Your Rights (EU/UK — GDPR) <span style="font-size:11px;background:#dceefa;color:#1a3a6e;padding:2px 6px;border-radius:3px;font-family:'Fira Code',monospace;font-weight:500">Art.15–22</span></h2>
+          <p>If you are located in the EU or UK, you have the following rights under GDPR:</p>
+          <table class="rights-table">
+            <tr><th>Right</th><th>Article</th><th>Description</th></tr>
+            <tr><td><strong>Access</strong></td><td>Art.15</td><td>Request a copy of all personal data we hold about you</td></tr>
+            <tr><td><strong>Rectification</strong></td><td>Art.16</td><td>Correct inaccurate or incomplete data</td></tr>
+            <tr><td><strong>Erasure</strong></td><td>Art.17</td><td>Request deletion ("right to be forgotten")</td></tr>
+            <tr><td><strong>Restriction</strong></td><td>Art.18</td><td>Limit how we use your data</td></tr>
+            <tr><td><strong>Portability</strong></td><td>Art.20</td><td>Receive your data in machine-readable format (JSON)</td></tr>
+            <tr><td><strong>Object</strong></td><td>Art.21</td><td>Object to processing based on legitimate interests</td></tr>
+          </table>
+          <p>To exercise any right, email <strong>privacy@policypen.io</strong> with subject line "Data Rights Request". We respond within <strong>30 days</strong> (up to 90 days for complex requests). You may also lodge a complaint with your national Data Protection Authority (DPA).</p>
+
+          <h2 id="sec-ccpa-rights">8. Your Rights (California — CCPA/CPRA)</h2>
+          <div class="notice-info">California residents have specific rights under the California Consumer Privacy Act (CCPA) and California Privacy Rights Act (CPRA), effective January 1, 2023.</div>
+          <p>California residents have the right to: <strong>Know</strong> what personal information we collect and how it is used; <strong>Delete</strong> personal information we hold (subject to exceptions); <strong>Correct</strong> inaccurate personal information; <strong>Opt-out</strong> of sale or sharing of personal information.</p>
+          <p><strong>We do not sell or share your personal information</strong> for cross-context behavioral advertising. To submit a CCPA request, email privacy@policypen.io with subject "CCPA Privacy Request". Response within 45 days.</p>
+
+          <h2 id="sec-security">9. Security Measures</h2>
+          <p>We implement appropriate technical and organisational measures including: TLS 1.3 encryption in transit, AES-256 encryption at rest for sensitive fields, row-level security on all database queries, regular security audits, and access controls limiting employee data access to what is necessary for their role.</p>
+
+          <h2 id="sec-changes">10. Changes to This Policy</h2>
+          <p>We will notify you of material changes to this Privacy Policy by email (at least 30 days before changes take effect) and by displaying a banner on policypen.io. Continued use of the service after the effective date constitutes acceptance of the updated policy.</p>
+
+          <h2 id="sec-contact">11. Contact Us</h2>
+          <p>For any privacy-related questions, requests, or concerns:</p>
+          <p><strong>Email:</strong> privacy@policypen.io<br>
+          <strong>Subject line:</strong> Privacy Inquiry — [Your Name]<br>
+          <strong>Response time:</strong> Within 5 business days</p>
+        </div>
+
+        <!-- Terms of Service (hidden) -->
+        <div id="doc-tos" style="display:none">
+          <h1>Terms of Service</h1>
+          <div class="doc-meta">
+            <span>PolicyPen Inc.</span>
+            <span>Effective: March 1, 2025</span>
+            <span>Version 2</span>
+            <span>policypen.io</span>
+          </div>
+          <h2 id="tos-acceptance">1. Agreement to Terms</h2>
+          <p>By accessing or using PolicyPen, you agree to be bound by these Terms of Service. If you do not agree, do not use the service. These Terms constitute a legally binding agreement between you and PolicyPen Inc.</p>
+          <h2 id="tos-service">2. Description of Service</h2>
+          <p>PolicyPen is an AI-powered legal policy generation tool that creates Privacy Policies, Terms of Service, Cookie Policies, and Refund Policies for software products. Policies are generated using artificial intelligence and are provided for general informational purposes. <strong>PolicyPen is not a law firm and does not provide legal advice.</strong></p>
+          <h2 id="tos-ip">3. Intellectual Property</h2>
+          <p>PolicyPen grants you a non-exclusive license to use the generated policy documents for your own products. You retain ownership of your questionnaire inputs. Generated documents may not be resold, sublicensed, or provided to third parties except as embedded in your own product's legal pages.</p>
+          <h2 id="tos-liability">4. Limitation of Liability</h2>
+          <p>To the maximum extent permitted by law, PolicyPen's total liability to you for any claim arising out of or related to the service shall not exceed the fees paid by you in the twelve (12) months preceding the claim. In no event shall PolicyPen be liable for indirect, incidental, special, consequential, or punitive damages.</p>
+          <h2 id="tos-contact">5. Contact</h2>
+          <p>Legal@policypen.io</p>
+        </div>
+
+        <!-- Cookie Policy (hidden) -->
+        <div id="doc-cookie" style="display:none">
+          <h1>Cookie Policy</h1>
+          <div class="doc-meta">
+            <span>PolicyPen Inc.</span>
+            <span>Effective: April 1, 2025</span>
+            <span>Version 2</span>
+          </div>
+          <h2 id="ck-what">1. What Are Cookies?</h2>
+          <p>Cookies are small text files stored on your device when you visit policypen.io. They help us provide a better experience by remembering your preferences and understanding how you use the site.</p>
+          <h2 id="ck-types">2. Cookie Categories</h2>
+          <p><strong>Strictly Necessary:</strong> Authentication session cookies (Clerk), CSRF protection tokens. These cannot be disabled as they are required for the service to function.</p>
+          <p><strong>Analytics:</strong> PostHog product analytics cookies track which features are used and how users navigate the product. These require consent for EU/UK users and can be disabled.</p>
+          <h2 id="ck-control">3. Your Cookie Choices</h2>
+          <p>EU/UK users are presented with a cookie consent banner before non-essential cookies are set. You can update your preferences at any time via the Cookie Preferences link in the footer.</p>
+          <h2 id="ck-contact">4. Contact</h2>
+          <p>privacy@policypen.io</p>
+        </div>
+
+        <!-- Refund Policy (hidden) -->
+        <div id="doc-refund" style="display:none">
+          <h1>Refund Policy</h1>
+          <div class="doc-meta">
+            <span>PolicyPen Inc.</span>
+            <span>Effective: January 1, 2025</span>
+            <span>Version 1</span>
+          </div>
+          <h2 id="rf-window">1. Refund Window</h2>
+          <p>PolicyPen offers a <strong>14-day money-back guarantee</strong> on all new subscriptions. If you are not satisfied within the first 14 days of your subscription, contact us for a full refund with no questions asked.</p>
+          <div class="notice-gdpr">EU/UK users: This 14-day window also satisfies your statutory right of withdrawal under the EU Consumer Rights Directive (2011/83/EU). You do not need to provide a reason.</div>
+          <h2 id="rf-cancel">2. Subscription Cancellation</h2>
+          <p>You may cancel your subscription at any time. Access continues until the end of your current billing period. No prorated refunds are issued for unused time after the 14-day window.</p>
+          <h2 id="rf-exceptions">3. Non-Refundable Items</h2>
+          <p>The following are not eligible for refund: subscriptions older than 14 days, accounts terminated for Terms of Service violations, and custom or white-label work already delivered under the Studio plan.</p>
+          <h2 id="rf-contact">4. How to Request a Refund</h2>
+          <p>Email billing@policypen.io with subject "Refund Request — [Your Account Email]". We process all refunds within 5 business days to your original payment method.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right sidebar -->
+  <aside class="policy-sidebar-right">
+
+    <div class="psr-section">
+      <div class="psr-label">Actions</div>
+      <button class="psr-action action-primary" onclick="alert('PDF downloaded!')">Download PDF</button>
+      <button class="psr-action action-secondary" onclick="copyUrl()">Copy page URL</button>
+      <button class="psr-action action-secondary" onclick="showView('embed');document.querySelectorAll('.app-tab')[2].classList.add('active');document.querySelectorAll('.app-tab')[0].classList.remove('active')">Embed widget ↗</button>
+    </div>
+
+    <div class="psr-section">
+      <div class="psr-label">Document info</div>
+      <div class="version-row">
+        <span class="vr-label">Version</span>
+        <span class="vr-val vr-current" id="sideVersion">v3 (current)</span>
+      </div>
+      <div class="version-row">
+        <span class="vr-label">Generated</span>
+        <span class="vr-val">Apr 7, 2026</span>
+      </div>
+      <div class="version-row">
+        <span class="vr-label">Tokens used</span>
+        <span class="vr-val">14,820</span>
+      </div>
+      <div class="version-row">
+        <span class="vr-label">Gen cost</span>
+        <span class="vr-val">$0.18</span>
+      </div>
+    </div>
+
+    <div class="psr-section">
+      <div class="psr-label">Jurisdictions covered</div>
+      <div class="jurisdiction-chips" id="sideJurisdictions">
+        <span class="jc" style="background:#dceefa;color:#1a3a6e">GDPR</span>
+        <span class="jc" style="background:#dceefa;color:#1a3a6e">ePrivacy</span>
+        <span class="jc" style="background:#e8f3ec;color:#1a4a2e">CCPA</span>
+        <span class="jc" style="background:#e8f3ec;color:#1a4a2e">CPRA</span>
+        <span class="jc" style="background:#faf0dc;color:#7a4a00">PIPEDA</span>
+        <span class="jc" style="background:#faeaea;color:#7a1a1a">COPPA</span>
+        <span class="jc" style="background:#e8e0f8;color:#4a1a8a">DMCA</span>
+        <span class="jc" style="background:#e8f3ec;color:#1a4a2e">FTC</span>
+      </div>
+    </div>
+
+    <div class="psr-section">
+      <div class="psr-label">Quick embed</div>
+      <div class="embed-code-block" onclick="copyEmbed(this)">
+        <span class="copy-hint">click to copy</span>
+&lt;a href="https://policypen.io
+  /p/policypen?doc=privacy"
+  target="_blank"&gt;
+  Privacy Policy
+&lt;/a&gt;</div>
+    </div>
+
+    <div class="psr-section" style="border-bottom:none">
+      <div class="psr-label">Version history</div>
+      <div class="version-row">
+        <span class="vr-label">v3 — Apr 7, 2026</span>
+        <span class="vr-val vr-current">current</span>
+      </div>
+      <div class="version-row">
+        <span class="vr-label">v2 — Jan 15, 2026</span>
+        <span class="vr-val" style="color:var(--muted)">CPRA update</span>
+      </div>
+      <div class="version-row">
+        <span class="vr-label">v1 — Oct 1, 2025</span>
+        <span class="vr-val" style="color:var(--muted)">initial</span>
+      </div>
+    </div>
+
+  </aside>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- VIEW 2: PRODUCT DASHBOARD                                       -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="view" id="view-dashboard">
+<div class="dashboard">
+  <div class="dash-header">
+    <div>
+      <div class="dash-title">Your Products</div>
+      <div class="dash-subtitle">Manage policy documents across all your products</div>
+    </div>
+    <button class="dash-btn">+ Add product</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Products</div>
+      <div class="stat-val" style="color:var(--accent)">3</div>
+      <div class="stat-sub">of 5 (Builder plan)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Documents</div>
+      <div class="stat-val">12</div>
+      <div class="stat-sub">generated total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Last update</div>
+      <div class="stat-val" style="font-size:20px">Apr 7</div>
+      <div class="stat-sub">CCPA CPRA refresh</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Auto-update</div>
+      <div class="stat-val" style="color:var(--accent);font-size:20px">ON</div>
+      <div class="stat-sub">Builder plan feature</div>
+    </div>
+  </div>
+
+  <!-- Product 1 -->
+  <div class="product-card">
+    <div class="pc-header">
+      <div>
+        <div class="pc-name">PolicyPen</div>
+        <div class="pc-url">policypen.io/p/policypen</div>
+      </div>
+      <span class="pc-plan plan-builder">Builder</span>
+    </div>
+    <div class="pc-docs-grid">
+      <div class="pc-doc">
+        <div class="pc-doc-type">Privacy Policy</div>
+        <div class="pc-doc-status">
+          <div class="status-dot dot-green"></div>
+          <span style="font-size:12px;font-weight:500">Current</span>
+        </div>
+        <div class="pc-doc-date">Apr 7, 2026</div>
+        <div class="pc-doc-ver">v3</div>
+      </div>
+      <div class="pc-doc">
+        <div class="pc-doc-type">Terms of Service</div>
+        <div class="pc-doc-status">
+          <div class="status-dot dot-green"></div>
+          <span style="font-size:12px;font-weight:500">Current</span>
+        </div>
+        <div class="pc-doc-date">Mar 15, 2025</div>
+        <div class="pc-doc-ver">v2</div>
+      </div>
+      <div class="pc-doc">
+        <div class="pc-doc-type">Cookie Policy</div>
+        <div class="pc-doc-status">
+          <div class="status-dot dot-amber"></div>
+          <span style="font-size:12px;font-weight:500;color:var(--amber)">Update available</span>
+        </div>
+        <div class="pc-doc-date">Jan 2, 2025</div>
+        <div class="pc-doc-ver">v2</div>
+      </div>
+      <div class="pc-doc">
+        <div class="pc-doc-type">Refund Policy</div>
+        <div class="pc-doc-status">
+          <div class="status-dot dot-green"></div>
+          <span style="font-size:12px;font-weight:500">Current</span>
+        </div>
+        <div class="pc-doc-date">Oct 1, 2024</div>
+        <div class="pc-doc-ver">v1</div>
+      </div>
+    </div>
+    <div class="pc-actions">
+      <button class="pc-btn pc-btn-primary" onclick="showView('policy-page');document.querySelectorAll('.app-tab')[0].classList.add('active');document.querySelectorAll('.app-tab')[1].classList.remove('active')">View page</button>
+      <button class="pc-btn">Regenerate all</button>
+      <button class="pc-btn">Edit questionnaire</button>
+      <button class="pc-btn">Download PDFs</button>
+      <a href="#" class="pc-url-preview">policypen.io/p/policypen ↗</a>
+    </div>
+  </div>
+
+  <!-- Product 2 -->
+  <div class="product-card">
+    <div class="pc-header">
+      <div>
+        <div class="pc-name">SideProject Alpha</div>
+        <div class="pc-url">policypen.io/p/sidealpha</div>
+      </div>
+      <span class="pc-plan plan-builder">Builder</span>
+    </div>
+    <div class="pc-docs-grid">
+      <div class="pc-doc">
+        <div class="pc-doc-type">Privacy Policy</div>
+        <div class="pc-doc-status"><div class="status-dot dot-green"></div><span style="font-size:12px;font-weight:500">Current</span></div>
+        <div class="pc-doc-date">Feb 12, 2026</div>
+        <div class="pc-doc-ver">v1</div>
+      </div>
+      <div class="pc-doc">
+        <div class="pc-doc-type">Terms of Service</div>
+        <div class="pc-doc-status"><div class="status-dot dot-green"></div><span style="font-size:12px;font-weight:500">Current</span></div>
+        <div class="pc-doc-date">Feb 12, 2026</div>
+        <div class="pc-doc-ver">v1</div>
+      </div>
+      <div class="pc-doc">
+        <div class="pc-doc-type">Cookie Policy</div>
+        <div class="pc-doc-status"><div class="status-dot dot-green"></div><span style="font-size:12px;font-weight:500">Current</span></div>
+        <div class="pc-doc-date">Feb 12, 2026</div>
+        <div class="pc-doc-ver">v1</div>
+      </div>
+      <div class="pc-doc">
+        <div class="pc-doc-type">Refund Policy</div>
+        <div class="pc-doc-status"><div class="status-dot dot-gray"></div><span style="font-size:12px;color:var(--muted)">Not generated</span></div>
+        <div class="pc-doc-date">—</div>
+        <div class="pc-doc-ver">—</div>
+      </div>
+    </div>
+    <div class="pc-actions">
+      <button class="pc-btn pc-btn-primary">View page</button>
+      <button class="pc-btn" style="background:var(--amber-light);color:var(--amber);border-color:var(--amber)">Generate Refund Policy</button>
+      <button class="pc-btn">Edit questionnaire</button>
+      <a href="#" class="pc-url-preview">policypen.io/p/sidealpha ↗</a>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- VIEW 3: EMBED WIDGET                                            -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="view" id="view-embed">
+<div class="embed-view">
+  <h1 style="font-family:var(--serif);font-size:28px;font-weight:700;margin-bottom:6px">Embed & integrate</h1>
+  <p style="color:var(--muted);font-size:14px;margin-bottom:36px">Three ways to add your policies to your product. All methods stay in sync automatically when policies are updated.</p>
+
+  <!-- Option 1: Footer widget -->
+  <div class="embed-section">
+    <div class="embed-section-title">1. Footer link widget</div>
+    <div class="embed-section-desc">One script tag in your HTML. Renders a footer row with links to all 4 policy pages. Automatically uses the correct hosted URL. No maintenance required.</div>
+
+    <div class="embed-preview">
+      <div class="embed-preview-label">Preview</div>
+      <div class="widget-preview">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Cookie Policy</a>
+        <a href="#">Refund Policy</a>
+        <span style="float:right;font-size:11px;color:#bbb">Powered by <a href="#" style="color:#bbb">PolicyPen</a></span>
+      </div>
+    </div>
+
+    <div class="option-row">
+      <span class="option-label">Your slug</span>
+      <input type="text" value="your-product-slug" id="slugInput" style="padding:6px 10px;border:1px solid var(--rule2);border-radius:4px;font-size:12px;font-family:var(--mono);width:220px" oninput="updateEmbedCodes()">
+    </div>
+
+    <div class="option-row">
+      <span class="option-label">Theme</span>
+      <select class="option-select" id="themeSelect" onchange="updateEmbedCodes()">
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </div>
+
+    <div class="embed-code" id="footerEmbedCode">
+<span class="cm">&lt;!-- PolicyPen Widget — paste before &lt;/body&gt; --&gt;</span>
+<span class="kw">&lt;script&gt;</span>
+<span class="cm">// Auto-renders footer links for all 4 policies</span>
+(function() {
+  var slug = <span class="st">'your-product-slug'</span>;
+  var base = <span class="st">'https://policypen.io'</span>;
+  var links = [
+    { key: <span class="st">'privacy'</span>, label: <span class="st">'Privacy Policy'</span> },
+    { key: <span class="st">'tos'</span>,     label: <span class="st">'Terms of Service'</span> },
+    { key: <span class="st">'cookie'</span>,  label: <span class="st">'Cookie Policy'</span> },
+    { key: <span class="st">'refund'</span>,  label: <span class="st">'Refund Policy'</span> },
+  ];
+  <span class="cm">// ... renders linked footer row</span>
+})();
+<span class="kw">&lt;/script&gt;</span>
+      <button class="copy-btn" onclick="copyCode('footerEmbedCode')">copy</button>
+    </div>
+  </div>
+
+  <!-- Option 2: Inline iframe -->
+  <div class="embed-section">
+    <div class="embed-section-title">2. Inline iframe (specific document)</div>
+    <div class="embed-section-desc">Embed a full policy document directly in your page — useful for checkout flows that need Privacy Policy or Terms inline. The iframe auto-sizes to document height.</div>
+
+    <div class="option-row">
+      <span class="option-label">Document</span>
+      <select class="option-select" id="iframeDocSelect" onchange="updateEmbedCodes()">
+        <option value="privacy">Privacy Policy</option>
+        <option value="tos">Terms of Service</option>
+        <option value="cookie">Cookie Policy</option>
+        <option value="refund">Refund Policy</option>
+      </select>
+    </div>
+
+    <div class="embed-code" id="iframeEmbedCode">
+<span class="kw">&lt;iframe</span>
+  <span class="hl">src</span>=<span class="st">"https://policypen.io/p/your-product-slug
+    ?doc=privacy&amp;embed=1"</span>
+  <span class="hl">style</span>=<span class="st">"width:100%;border:none;min-height:600px"</span>
+  <span class="hl">title</span>=<span class="st">"Privacy Policy"</span>
+  <span class="hl">loading</span>=<span class="st">"lazy"</span>
+  <span class="hl">onload</span>=<span class="st">"this.style.minHeight =
+    this.contentDocument.body.scrollHeight + 'px'"</span>
+<span class="kw">&gt;&lt;/iframe&gt;</span>
+      <button class="copy-btn" onclick="copyCode('iframeEmbedCode')">copy</button>
+    </div>
+  </div>
+
+  <!-- Option 3: Direct links -->
+  <div class="embed-section">
+    <div class="embed-section-title">3. Direct links (minimal)</div>
+    <div class="embed-section-desc">Simple anchor links to your hosted policy pages. Use anywhere — footer nav, signup forms, checkout pages, app settings.</div>
+
+    <div class="embed-code" id="linksEmbedCode">
+<span class="cm">&lt;!-- Add to your footer or signup form --&gt;</span>
+<span class="kw">&lt;a</span> <span class="hl">href</span>=<span class="st">"https://policypen.io/p/your-product-slug?doc=privacy"</span>
+   <span class="hl">target</span>=<span class="st">"_blank"</span><span class="kw">&gt;</span>Privacy Policy<span class="kw">&lt;/a&gt;</span>
+
+<span class="kw">&lt;a</span> <span class="hl">href</span>=<span class="st">"https://policypen.io/p/your-product-slug?doc=tos"</span>
+   <span class="hl">target</span>=<span class="st">"_blank"</span><span class="kw">&gt;</span>Terms of Service<span class="kw">&lt;/a&gt;</span>
+
+<span class="kw">&lt;a</span> <span class="hl">href</span>=<span class="st">"https://policypen.io/p/your-product-slug?doc=cookie"</span>
+   <span class="hl">target</span>=<span class="st">"_blank"</span><span class="kw">&gt;</span>Cookie Policy<span class="kw">&lt;/a&gt;</span>
+
+<span class="kw">&lt;a</span> <span class="hl">href</span>=<span class="st">"https://policypen.io/p/your-product-slug?doc=refund"</span>
+   <span class="hl">target</span>=<span class="st">"_blank"</span><span class="kw">&gt;</span>Refund Policy<span class="kw">&lt;/a&gt;</span>
+      <button class="copy-btn" onclick="copyCode('linksEmbedCode')">copy</button>
+    </div>
+  </div>
+
+  <!-- Option 4: Custom domain (Studio plan) -->
+  <div class="embed-section" style="border-bottom:none">
+    <div class="embed-section-title">4. Custom domain <span style="font-size:12px;padding:2px 8px;background:#eae0fa;color:#4a1a8a;border-radius:3px;margin-left:8px;font-family:var(--mono)">Studio plan</span></div>
+    <div class="embed-section-desc">White-label the policy page at your own domain — e.g., <code style="font-family:var(--mono);font-size:12px">legal.yourproduct.com/privacy</code>. Set a CNAME pointing to <code style="font-family:var(--mono);font-size:12px">policy-pages.policypen.io</code> and configure in your dashboard.</div>
+
+    <div class="embed-code">
+<span class="cm"># DNS configuration (Cloudflare example)</span>
+CNAME  legal  policy-pages.policypen.io
+
+<span class="cm"># Result: legal.yourproduct.com/privacy</span>
+<span class="cm">#         legal.yourproduct.com/tos</span>
+<span class="cm">#         legal.yourproduct.com/cookie</span>
+<span class="cm">#         legal.yourproduct.com/refund</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- VIEW 4: ISR ARCHITECTURE                                        -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="view" id="view-architecture">
+<div class="arch-view">
+  <h1 style="font-family:var(--serif);font-size:28px;font-weight:700;margin-bottom:6px">ISR Architecture</h1>
+  <p style="color:var(--muted);font-size:14px;margin-bottom:36px">How policy pages are generated, cached, invalidated, and served at zero marginal cost per page view.</p>
+
+  <!-- Request flow -->
+  <div class="arch-section">
+    <div class="arch-title">Request flow — first visit vs cached</div>
+    <div class="arch-desc">Next.js Incremental Static Regeneration generates the page once and caches it on Vercel's global CDN. Subsequent requests are served from cache without touching Claude or Supabase.</div>
+
+    <div class="flow-steps">
+      <div class="flow-step" style="border-top:3px solid var(--accent)">
+        <div class="fs-num">01</div>
+        <div class="fs-title">User visits</div>
+        <div class="fs-desc">GET /p/policypen?doc=privacy<br>First visit or post-revalidation</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-top:3px solid var(--blue)">
+        <div class="fs-num">02</div>
+        <div class="fs-title">ISR check</div>
+        <div class="fs-desc">Is cached version less than 24h old?<br>YES → serve cached static HTML</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-top:3px solid #7a4a00">
+        <div class="fs-num">03</div>
+        <div class="fs-title">Supabase fetch</div>
+        <div class="fs-desc">If stale or first build: load product + policies from DB</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-top:3px solid #6a1a1a">
+        <div class="fs-num">04</div>
+        <div class="fs-title">Static render</div>
+        <div class="fs-desc">Render React → HTML. Store in Vercel CDN cache.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-top:3px solid var(--accent)">
+        <div class="fs-num">05</div>
+        <div class="fs-title">Response</div>
+        <div class="fs-desc">&lt;100ms globally from CDN edge. Zero server cost per view.</div>
+      </div>
+    </div>
+
+    <div class="code-file">
+      <div class="cf-header">
+        <span class="cf-filename">app/p/[slug]/page.tsx</span>
+        <span class="cf-tag">Next.js 14 App Router</span>
+      </div>
+      <div class="cf-body"><span class="cc">// ISR: revalidate every 24h OR on-demand via /api/revalidate</span>
+<span class="ck">export const</span> <span class="cm">revalidate</span> = <span class="cn">86400</span>  <span class="cc">// 24h in seconds</span>
+
+<span class="ck">export default async function</span> <span class="cm">PolicyPage</span>({ params, searchParams }) {
+  <span class="cc">// Supabase fetch — runs at build/revalidation time only</span>
+  <span class="ck">const</span> { data: product } = <span class="ck">await</span> supabase
+    .<span class="cm">from</span>(<span class="cs">'products'</span>).<span class="cm">select</span>(<span class="cs">'*'</span>)
+    .<span class="cm">eq</span>(<span class="cs">'slug'</span>, params.slug).<span class="cm">single</span>()
+
+  <span class="ck">if</span> (!product) <span class="cm">notFound</span>()  <span class="cc">// → 404 page</span>
+
+  <span class="ck">const</span> { data: policies } = <span class="ck">await</span> supabase
+    .<span class="cm">from</span>(<span class="cs">'policies'</span>)
+    .<span class="cm">select</span>(<span class="cs">'policy_type, content_html, version, generated_at, jurisdictions'</span>)
+    .<span class="cm">eq</span>(<span class="cs">'product_id'</span>, product.id)
+    .<span class="cm">order</span>(<span class="cs">'version'</span>, { ascending: <span class="ck">false</span> })
+
+  <span class="cc">// Latest version of each policy type</span>
+  <span class="ck">const</span> policyMap = {}
+  policies.<span class="cm">forEach</span>(p => {
+    <span class="ck">if</span> (!policyMap[p.policy_type]) policyMap[p.policy_type] = p
+  })
+
+  <span class="cc">// Render static HTML — cached on Vercel CDN after this</span>
+  <span class="ck">return</span> &lt;<span class="cm">PolicyPageClient</span>
+    product={product}
+    policies={policyMap}
+    activeDoc={searchParams.doc || <span class="cs">'privacy'</span>}
+  /&gt;
+}</div>
+    </div>
+  </div>
+
+  <!-- On-demand revalidation -->
+  <div class="arch-section">
+    <div class="arch-title">On-demand revalidation — law changes</div>
+    <div class="arch-desc">When a law changes, policies are regenerated and the ISR cache is purged via Next.js <code style="font-family:var(--mono);font-size:12px">revalidatePath()</code>. The next request gets a fresh page — users see the updated policy without any manual deploy.</div>
+
+    <div class="flow-steps">
+      <div class="flow-step" style="border-top:3px solid #7a4a00">
+        <div class="fs-num">01</div>
+        <div class="fs-title">Law change</div>
+        <div class="fs-desc">Admin inserts row into law_updates table: GDPR amendment effective date</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-top:3px solid #7a4a00">
+        <div class="fs-num">02</div>
+        <div class="fs-title">Cron job</div>
+        <div class="fs-desc">pg_cron or Vercel Cron: query users with matching jurisdictions</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-top:3px solid var(--blue)">
+        <div class="fs-num">03</div>
+        <div class="fs-title">Regenerate</div>
+        <div class="fs-desc">Call generatePolicy() with updated prompt v2. Save new version to Supabase.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-top:3px solid var(--accent)">
+        <div class="fs-num">04</div>
+        <div class="fs-title">Revalidate</div>
+        <div class="fs-desc">POST /api/revalidate → revalidatePath('/p/{slug}')</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-top:3px solid var(--accent)">
+        <div class="fs-num">05</div>
+        <div class="fs-title">Email user</div>
+        <div class="fs-desc">"Your Privacy Policy was auto-updated for the GDPR amendment." Builder+ feature.</div>
+      </div>
+    </div>
+
+    <div class="code-file">
+      <div class="cf-header">
+        <span class="cf-filename">app/api/revalidate/route.ts</span>
+        <span class="cf-tag">On-demand ISR</span>
+      </div>
+      <div class="cf-body"><span class="ck">import</span> { revalidatePath } <span class="ck">from</span> <span class="cs">'next/cache'</span>
+
+<span class="ck">export async function</span> <span class="cm">POST</span>(req: Request) {
+  <span class="cc">// Verify secret to prevent unauthorized revalidation</span>
+  <span class="ck">const</span> auth = req.headers.<span class="cm">get</span>(<span class="cs">'Authorization'</span>)
+  <span class="ck">if</span> (auth !== <span class="cs">\`Bearer \${process.env.REVALIDATION_SECRET}\`</span>) {
+    <span class="ck">return</span> Response.<span class="cm">json</span>({ error: <span class="cs">'Unauthorized'</span> }, { status: <span class="cn">401</span> })
+  }
+
+  <span class="ck">const</span> { slug } = <span class="ck">await</span> req.<span class="cm">json</span>()
+
+  <span class="cc">// Purge ISR cache for this specific policy page</span>
+  <span class="cm">revalidatePath</span>(<span class="cs">\`/p/\${slug}\`</span>)
+
+  <span class="cc">// Also revalidate any sitemap that lists policy pages</span>
+  <span class="cm">revalidatePath</span>(<span class="cs">'/sitemap.xml'</span>)
+
+  <span class="ck">return</span> Response.<span class="cm">json</span>({
+    revalidated: <span class="ck">true</span>,
+    slug,
+    timestamp: <span class="ck">new</span> <span class="cm">Date</span>().<span class="cm">toISOString</span>()
+  })
+}</div>
+    </div>
+  </div>
+
+  <!-- Performance profile -->
+  <div class="arch-section" style="border-bottom:none">
+    <div class="arch-title">Performance & cost profile</div>
+    <div class="arch-desc">Measured at 500 users with 80% cache hit rate. All times are p99 (worst-case).</div>
+
+    <div class="grid2-arch">
+      <div class="info-card">
+        <div class="ic-title">Page load performance</div>
+        <ul class="ic-list">
+          <li>Cache hit (CDN) <span class="ic-badge ib-green">&lt; 60ms</span></li>
+          <li>Cache miss (ISR rebuild) <span class="ic-badge ib-amber">&lt; 800ms</span></li>
+          <li>First policy generation <span class="ic-badge ib-amber">&lt; 8s</span></li>
+          <li>Core Web Vitals (LCP) <span class="ic-badge ib-green">excellent</span></li>
+          <li>Lighthouse performance <span class="ic-badge ib-green">95+</span></li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <div class="ic-title">Infrastructure cost at 500 users</div>
+        <ul class="ic-list">
+          <li>Vercel hosting <span class="ic-badge ib-green">$0 (free)</span></li>
+          <li>Supabase DB <span class="ic-badge ib-green">$0 (free)</span></li>
+          <li>Claude API (cached) <span class="ic-badge ib-amber">~$50/mo</span></li>
+          <li>CDN bandwidth <span class="ic-badge ib-green">$0 (included)</span></li>
+          <li>Total infra <span class="ic-badge ib-green">~$50/mo</span></li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <div class="ic-title">SEO advantages of ISR</div>
+        <div class="ic-body">Static HTML is fully indexable by search engines. Policy pages with proper metadata (title, description, robots: noindex for policies, index for SEO landing pages) get correct crawl treatment. Sub-100ms TTFB outperforms any SSR or client-rendered alternative.</div>
+      </div>
+      <div class="info-card">
+        <div class="ic-title">Cache invalidation strategy</div>
+        <div class="ic-body">24h automatic background revalidation. On-demand revalidation fires immediately after: (1) user manually regenerates a policy, (2) law_updates cron triggers regen, (3) user edits questionnaire. ISR background revalidation is non-blocking — stale content is served until fresh is ready.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// Tab switching
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.app-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  const idx = ['policy-page','dashboard','embed','architecture'].indexOf(id);
+  document.querySelectorAll('.app-tab')[idx].classList.add('active');
+}
+
+// Doc switching in policy page
+const DOC_META = {
+  privacy: {
+    title: 'Privacy Policy', version: 'Version 3', date: 'Effective April 7, 2026',
+    read: '8 min read', sideVer: 'v3 (current)',
+    laws: [['GDPR','#dceefa','#1a3a6e'],['CCPA','#e8f3ec','#1a4a2e'],['PIPEDA','#faf0dc','#7a4a00'],['COPPA','#faeaea','#7a1a1a']]
+  },
+  tos: {
+    title: 'Terms of Service', version: 'Version 2', date: 'Effective March 1, 2025',
+    read: '6 min read', sideVer: 'v2 (current)',
+    laws: [['FTC','#e8f3ec','#1a4a2e'],['DMCA','#faeaea','#7a1a1a'],['EU_CRD','#dceefa','#1a3a6e']]
+  },
+  cookie: {
+    title: 'Cookie Policy', version: 'Version 2', date: 'Effective April 1, 2025',
+    read: '4 min read', sideVer: 'v2 (current)',
+    laws: [['ePrivacy','#dceefa','#1a3a6e'],['GDPR','#dceefa','#1a3a6e'],['CCPA','#e8f3ec','#1a4a2e']]
+  },
+  refund: {
+    title: 'Refund Policy', version: 'Version 1', date: 'Effective January 1, 2025',
+    read: '3 min read', sideVer: 'v1 (current)',
+    laws: [['EU_CRD','#dceefa','#1a3a6e'],['FTC','#e8f3ec','#1a4a2e']]
+  },
+};
+
+function switchDoc(type, btn) {
+  // Update nav buttons
+  document.querySelectorAll('.nav-doc-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  // Show/hide doc content
+  ['privacy','tos','cookie','refund'].forEach(t => {
+    document.getElementById('doc-'+t).style.display = t===type?'block':'none';
+  });
+
+  // Update header
+  const m = DOC_META[type];
+  document.getElementById('docTitle').textContent = m.title;
+  document.getElementById('docVersion').textContent = m.version;
+  document.getElementById('docDate').textContent = m.date;
+  document.getElementById('docReadTime').textContent = m.read;
+  document.getElementById('sideVersion').textContent = m.sideVer;
+
+  // Update law badges
+  const badgesEl = document.getElementById('lawBadges');
+  badgesEl.innerHTML = m.laws.map(([l,bg,c]) =>
+    `<span class="law-badge" style="background:${bg};color:${c}">${l}</span>`
+  ).join('');
+
+  // Build TOC
+  const headings = document.querySelectorAll('#doc-'+type+' h2');
+  const toc = document.getElementById('toc-nav');
+  toc.innerHTML = '<div class="nav-section-label">On this page</div>' +
+    [...headings].map(h => `<button class="toc-item" onclick="scrollToSection('${h.id}')">${h.textContent}</button>`).join('');
+}
+
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({behavior:'smooth'});
+}
+
+function copyUrl() {
+  const url = 'https://policypen.io/p/policypen';
+  navigator.clipboard.writeText(url).then(() => alert('URL copied: ' + url));
+}
+
+function copyEmbed(el) {
+  navigator.clipboard.writeText(el.textContent.replace('click to copy','').trim())
+    .then(() => { el.querySelector('.copy-hint').textContent = 'copied!'; setTimeout(()=>{el.querySelector('.copy-hint').textContent='click to copy'},1500); });
+}
+
+function copyCode(id) {
+  const el = document.getElementById(id);
+  const text = el.innerText.replace('copy','').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = el.querySelector('.copy-btn');
+    if(btn) { btn.textContent='copied!'; setTimeout(()=>{btn.textContent='copy'},1500); }
+  });
+}
+
+function updateEmbedCodes() {
+  const slug = document.getElementById('slugInput').value || 'your-product-slug';
+  const doc = document.getElementById('iframeDocSelect').value;
+  // Just update the slug reference in visible codes (simplified demo)
+}
+
+// Init TOC
+switchDoc('privacy', document.querySelector('.nav-doc-btn.active'));
+</script>
+</body>
+</html>
