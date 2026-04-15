@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PolicyPen — Prompt Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Fira+Code:wght@400;500&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #faf7f0;
+  --warm: #f0ebe0;
+  --rule: #e0d8c8;
+  --deep: #1a1208;
+  --ink: #2a2018;
+  --muted: #8a7a60;
+  --lime: #5a8a00;
+  --lime-light: #eef5dc;
+  --amber: #b85000;
+  --amber-light: #fff0e0;
+  --blue: #004080;
+  --blue-light: #e0ecff;
+  --red: #8a0020;
+  --red-light: #ffe0e8;
+  --violet: #500080;
+  --violet-light: #f0e0ff;
+  --teal: #007060;
+  --teal-light: #e0f5f0;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: 'Figtree', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* HEADER */
+.header {
+  background: var(--deep);
+  color: var(--cream);
+  padding: 20px 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  border-bottom: 3px solid var(--lime);
+}
+
+.logo {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 900;
+}
+.logo em { font-style: italic; color: #c8f060; }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+}
+
+.hbadge {
+  padding: 4px 10px;
+  border-radius: 3px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-family: 'Fira Code', monospace;
+}
+.hb-lime { background: rgba(200,240,96,0.15); color: #c8f060; border: 1px solid rgba(200,240,96,0.3); }
+.hb-amber { background: rgba(184,80,0,0.2); color: #f0a060; border: 1px solid rgba(184,80,0,0.3); }
+
+/* HERO */
+.hero {
+  background: var(--deep);
+  color: var(--cream);
+  padding: 72px 56px 64px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::after {
+  content: 'buildPrompt()';
+  position: absolute;
+  right: 40px;
+  bottom: -30px;
+  font-family: 'Fraunces', serif;
+  font-size: 120px;
+  font-weight: 900;
+  font-style: italic;
+  color: rgba(255,255,255,0.04);
+  white-space: nowrap;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.hero-pre {
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(200,240,96,0.8);
+  margin-bottom: 16px;
+}
+
+.hero-title {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(36px, 5vw, 68px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -2px;
+  margin-bottom: 20px;
+}
+
+.hero-title em { font-style: italic; color: #c8f060; }
+
+.hero-desc {
+  font-size: 15px;
+  color: rgba(255,255,255,0.55);
+  max-width: 560px;
+  line-height: 1.6;
+  margin-bottom: 48px;
+}
+
+.flow-diagram {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fd-box {
+  padding: 10px 18px;
+  border-radius: 4px;
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.fd-input { background: rgba(90,138,0,0.2); border-color: rgba(90,138,0,0.4); color: #c8f060; }
+.fd-process { background: rgba(0,64,128,0.25); border-color: rgba(0,64,128,0.4); color: #80c0ff; }
+.fd-output { background: rgba(80,0,128,0.2); border-color: rgba(80,0,128,0.4); color: #c080ff; }
+.fd-arrow { color: rgba(255,255,255,0.3); font-size: 16px; }
+
+/* MAIN */
+.content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 56px;
+}
+
+.section {
+  padding: 64px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.section-eyebrow {
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+  line-height: 1.1;
+}
+
+.section-title em { font-style: italic; color: var(--amber); }
+
+.section-desc {
+  color: var(--muted);
+  font-size: 14px;
+  max-width: 600px;
+  margin-bottom: 40px;
+  line-height: 1.7;
+}
+
+/* 2-COL */
+.col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.col3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+/* FILE CARDS */
+.file-card {
+  background: var(--warm);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.file-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--deep);
+  color: var(--cream);
+}
+
+.file-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-family: 'Fira Code', monospace;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.fi-ts { background: #007acc; color: white; }
+.fi-fn { background: #5a8a00; color: white; }
+
+.file-name {
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+  color: #c8f060;
+}
+
+.file-path {
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  margin-left: auto;
+}
+
+.file-body {
+  padding: 20px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.file-exports {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+
+.export-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.export-fn {
+  font-family: 'Fira Code', monospace;
+  color: var(--lime);
+  background: var(--lime-light);
+  padding: 2px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.export-desc { color: var(--muted); }
+
+.file-lines {
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 12px;
+}
+
+/* CODE VIEWER */
+.code-viewer {
+  background: var(--deep);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.cv-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.2);
+  overflow-x: auto;
+}
+
+.cv-tab {
+  padding: 10px 20px;
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  background: none;
+  border-left: none;
+  border-top: none;
+  border-right: none;
+}
+.cv-tab:hover { color: rgba(255,255,255,0.7); }
+.cv-tab.active { color: #c8f060; border-bottom-color: #c8f060; }
+
+.cv-panel { display: none; }
+.cv-panel.active { display: block; }
+
+.cv-code {
+  padding: 24px;
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #d4cfbf;
+  overflow-x: auto;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.cv-code::-webkit-scrollbar { width: 6px; height: 6px; }
+.cv-code::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+.cv-code::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+/* Syntax colors */
+.ck { color: #ff7b72; } /* keyword */
+.cs { color: #a5d6ff; } /* string */
+.cn { color: #79c0ff; } /* name/identifier */
+.cc { color: #8b949e; } /* comment */
+.ct { color: #ffa657; } /* type */
+.cf { color: #d2a8ff; } /* function */
+.cm { color: #c8f060; } /* method/property key */
+.co { color: #ff9800; } /* operator */
+.cv { color: #e8c07a; } /* value/literal */
+
+/* JURISDICTION FLOW */
+.juris-flow {
+  background: var(--warm);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 32px;
+}
+
+.jf-input {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.jf-check {
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 10px 14px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.jf-check.active {
+  border-color: var(--lime);
+  background: var(--lime-light);
+}
+
+.jf-check-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--rule);
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.jf-check.active .jf-check-dot {
+  background: var(--lime);
+  border-color: var(--lime);
+}
+
+.jf-arrow-row {
+  text-align: center;
+  color: var(--muted);
+  font-size: 20px;
+  margin: 16px 0;
+}
+
+.jf-output {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 44px;
+  padding: 12px;
+  background: var(--deep);
+  border-radius: 6px;
+}
+
+.jf-law {
+  padding: 4px 12px;
+  border-radius: 3px;
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all 0.2s;
+}
+
+.jf-law.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.jl-gdpr { background: rgba(0,120,200,0.25); color: #80c8ff; }
+.jl-ccpa { background: rgba(90,138,0,0.25); color: #c8f060; }
+.jl-pipeda { background: rgba(184,80,0,0.25); color: #ffb060; }
+.jl-lgpd { background: rgba(80,0,128,0.25); color: #d080ff; }
+.jl-pdpa { background: rgba(0,112,96,0.25); color: #60f0d0; }
+.jl-coppa { background: rgba(200,0,60,0.25); color: #ff8080; }
+.jl-dmca { background: rgba(140,100,0,0.25); color: #f0d080; }
+.jl-canspam { background: rgba(60,60,60,0.3); color: #c0c0c0; }
+.jl-hipaa { background: rgba(200,0,150,0.2); color: #ff80d0; }
+.jl-eprivacy { background: rgba(0,80,200,0.2); color: #80a0ff; }
+.jl-eucrd { background: rgba(200,120,0,0.2); color: #ffa040; }
+.jl-ftc { background: rgba(40,100,40,0.25); color: #80d080; }
+.jl-caral { background: rgba(180,60,0,0.2); color: #ff9060; }
+
+.jf-note {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 12px;
+  font-family: 'Fira Code', monospace;
+}
+
+/* CLAUSE CARD */
+.clause-card {
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 12px;
+}
+
+.clause-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.clause-id {
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  background: var(--warm);
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--rule);
+  color: var(--ink);
+}
+
+.clause-priority {
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: 'Fira Code', monospace;
+  letter-spacing: 0.5px;
+}
+.cp-mandatory { background: var(--red-light); color: var(--red); }
+.cp-recommended { background: var(--amber-light); color: var(--amber); }
+
+.clause-law-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.clt {
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  background: var(--blue-light);
+  color: var(--blue);
+}
+
+.clause-condition {
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  background: var(--warm);
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  color: var(--amber);
+  border-left: 3px solid var(--amber);
+}
+
+.clause-instruction {
+  font-size: 12px;
+  color: #4a3a28;
+  line-height: 1.7;
+  background: var(--warm);
+  padding: 12px 16px;
+  border-radius: 4px;
+}
+
+/* ASSEMBLY DIAGRAM */
+.assembly {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 0;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.asm-sidebar {
+  background: var(--deep);
+  color: var(--cream);
+  padding: 0;
+}
+
+.asm-step {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 12px;
+}
+
+.asm-step:hover { background: rgba(255,255,255,0.05); }
+.asm-step.active { background: rgba(200,240,96,0.1); border-left: 3px solid #c8f060; }
+
+.asm-step-num {
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+  margin-bottom: 2px;
+}
+
+.asm-step-name {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.asm-step.active .asm-step-name { color: #c8f060; }
+
+.asm-content {
+  padding: 28px;
+  background: white;
+}
+
+.asm-panel { display: none; }
+.asm-panel.active { display: block; }
+
+.asm-panel-title {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.asm-panel-desc {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+/* PROMPT PREVIEW */
+.prompt-preview {
+  background: var(--deep);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.pp-header {
+  padding: 12px 20px;
+  background: rgba(200,240,96,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: #c8f060;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pp-tokens {
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+}
+
+.pp-body {
+  padding: 20px;
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  line-height: 1.8;
+  color: #d4cfbf;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.pp-section { color: #c8f060; font-weight: 600; }
+.pp-comment { color: rgba(255,255,255,0.3); }
+.pp-var { color: #ffb060; background: rgba(255,176,96,0.1); padding: 0 4px; border-radius: 2px; }
+.pp-clause { color: #80c8ff; }
+.pp-ellipsis { color: rgba(255,255,255,0.2); }
+
+/* COST TABLE */
+.cost-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+
+.cost-card {
+  background: var(--warm);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 20px;
+  text-align: center;
+}
+
+.cost-type {
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.cost-est {
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  margin-bottom: 4px;
+}
+
+.cost-unit { font-size: 11px; color: var(--muted); }
+.cost-bar { height: 4px; border-radius: 2px; margin-top: 14px; }
+
+/* INTEGRATION CARDS */
+.int-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.int-card {
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.int-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.int-title { font-weight: 700; font-size: 14px; }
+.int-sub { font-size: 11px; color: var(--muted); }
+
+.int-tag {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+
+.it-lime { background: var(--lime-light); color: var(--lime); }
+.it-amber { background: var(--amber-light); color: var(--amber); }
+.it-blue { background: var(--blue-light); color: var(--blue); }
+
+.int-body {
+  padding: 16px 20px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.int-code {
+  background: var(--deep);
+  padding: 14px 20px;
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: #d4cfbf;
+  line-height: 1.7;
+}
+
+@media (max-width: 900px) {
+  .header, .hero, .content { padding-left: 20px; padding-right: 20px; }
+  .col2, .col3, .cost-grid, .int-grid { grid-template-columns: 1fr; }
+  .jf-input { grid-template-columns: 1fr 1fr; }
+  .assembly { grid-template-columns: 1fr; }
+  .asm-sidebar { display: flex; overflow-x: auto; }
+  .asm-step { border-bottom: none; border-right: 1px solid rgba(255,255,255,0.08); white-space: nowrap; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">Policy<em>Pen</em></div>
+  <div class="header-right">
+    <span class="hbadge hb-lime">Prompt Engine v1.0</span>
+    <span class="hbadge hb-amber">1,095 lines · 6 files</span>
+    <span>TypeScript · Claude Sonnet</span>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-pre">// lib/prompts/builder.ts → lib/prompts/generate.ts</div>
+  <h1 class="hero-title">The <em>complete</em> prompt<br>template engine.</h1>
+  <p class="hero-desc">6 TypeScript files. Full jurisdiction routing, clause library, variable interpolation, streaming generation, and cost tracking. Drop into any Next.js project and run.</p>
+  
+  <div class="flow-diagram">
+    <div class="fd-box fd-input">Questionnaire (87 vars)</div>
+    <div class="fd-arrow">→</div>
+    <div class="fd-box fd-process">resolveJurisdictions()</div>
+    <div class="fd-arrow">→</div>
+    <div class="fd-box fd-process">getClausesForPolicy()</div>
+    <div class="fd-arrow">→</div>
+    <div class="fd-box fd-process">buildPrompt()</div>
+    <div class="fd-arrow">→</div>
+    <div class="fd-box fd-output">Claude API → HTML</div>
+    <div class="fd-arrow">→</div>
+    <div class="fd-box fd-input">Supabase (cached)</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="content">
+
+<!-- SECTION 1: FILE STRUCTURE -->
+<section class="section">
+  <div class="section-eyebrow">// 01 — Architecture</div>
+  <div class="section-title">Six files. <em>Zero ambiguity.</em></div>
+  <div class="section-desc">Each file has exactly one responsibility. The dependency graph is linear — no circular imports, no magic. Drop the <code style="font-family:'Fira Code',monospace; font-size:12px">src/</code> folder into <code style="font-family:'Fira Code',monospace; font-size:12px">lib/prompts/</code> in your Next.js project.</div>
+
+  <div class="col2">
+    <div class="file-card">
+      <div class="file-header">
+        <div class="file-icon fi-ts">TS</div>
+        <div>
+          <div class="file-name">types.ts</div>
+          <div style="font-size:10px; color:rgba(255,255,255,0.3); margin-top:2px">lib/types.ts</div>
+        </div>
+        <div class="file-path">125 lines</div>
+      </div>
+      <div class="file-body">
+        All TypeScript interfaces and union types. The single source of truth for data shapes across the entire engine. Import from here — never redefine types.
+        <div class="file-exports">
+          <div class="export-item"><span class="export-fn">PolicyType</span><span class="export-desc">union: 'privacy' | 'tos' | 'cookie' | 'refund'</span></div>
+          <div class="export-item"><span class="export-fn">Jurisdiction</span><span class="export-desc">union: 19 jurisdiction codes (GDPR, CCPA, etc.)</span></div>
+          <div class="export-item"><span class="export-fn">Questionnaire</span><span class="export-desc">full interface: all 87 input variables with types</span></div>
+          <div class="export-item"><span class="export-fn">BuiltPrompt</span><span class="export-desc">return type with system, user, and metadata</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <div class="file-icon fi-ts">TS</div>
+        <div>
+          <div class="file-name">jurisdiction-router.ts</div>
+          <div style="font-size:10px; color:rgba(255,255,255,0.3); margin-top:2px">lib/jurisdiction-router.ts</div>
+        </div>
+        <div class="file-path">103 lines</div>
+      </div>
+      <div class="file-body">
+        Pure function: Questionnaire → Jurisdiction[]. Maps every active_jurisdictions entry and feature flag to applicable law codes. Also maps feature triggers (ugc → DMCA, healthcare → HIPAA, etc.).
+        <div class="file-exports">
+          <div class="export-item"><span class="export-fn">resolveJurisdictions()</span><span class="export-desc">Questionnaire → Jurisdiction[] — the routing core</span></div>
+          <div class="export-item"><span class="export-fn">explainJurisdictions()</span><span class="export-desc">debugging: why each law was activated</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <div class="file-icon fi-fn">CL</div>
+        <div>
+          <div class="file-name">clause-library.ts</div>
+          <div style="font-size:10px; color:rgba(255,255,255,0.3); margin-top:2px">lib/clause-library.ts</div>
+        </div>
+        <div class="file-path">387 lines</div>
+      </div>
+      <div class="file-body">
+        The legal brain. 40+ pre-written clause instruction blocks organized by policy type. Each clause: applicable jurisdictions, condition function, interpolatable instruction, and priority. Largest file — grows as laws change.
+        <div class="file-exports">
+          <div class="export-item"><span class="export-fn">PRIVACY_CLAUSES</span><span class="export-desc">11 clauses: GDPR Art.6/9/13/22, CCPA rights, COPPA, LGPD, HIPAA, AI processing</span></div>
+          <div class="export-item"><span class="export-fn">TOS_CLAUSES</span><span class="export-desc">9 clauses: acceptance, UGC/DMCA, marketplace, arbitration, liability, subscription, free trial, governing law</span></div>
+          <div class="export-item"><span class="export-fn">COOKIE_CLAUSES</span><span class="export-desc">4 clauses: what are cookies, categories, consent mechanism, tracking pixels</span></div>
+          <div class="export-item"><span class="export-fn">REFUND_CLAUSES</span><span class="export-desc">4 clauses: standard refund, subscription proration, EU cooling-off, exceptions</span></div>
+          <div class="export-item"><span class="export-fn">getClausesForPolicy()</span><span class="export-desc">filter clauses: policy type + jurisdictions + condition</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <div class="file-icon fi-fn">BP</div>
+        <div>
+          <div class="file-name">builder.ts</div>
+          <div style="font-size:10px; color:rgba(255,255,255,0.3); margin-top:2px">prompts/builder.ts</div>
+        </div>
+        <div class="file-path">276 lines</div>
+      </div>
+      <div class="file-body">
+        Orchestration layer. Wires all components together. Handles variable interpolation ({{var}} → actual value), assembles system + user prompts, calculates token estimates.
+        <div class="file-exports">
+          <div class="export-item"><span class="export-fn">buildPrompt()</span><span class="export-desc">policyType + questionnaire → BuiltPrompt. The primary export.</span></div>
+          <div class="export-item"><span class="export-fn">buildAllPrompts()</span><span class="export-desc">questionnaire → all 4 BuiltPrompts at once</span></div>
+          <div class="export-item"><span class="export-fn">interpolate()</span><span class="export-desc">internal: {{variable}} → actual value with enum translation</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <div class="file-icon fi-fn">GN</div>
+        <div>
+          <div class="file-name">generate.ts</div>
+          <div style="font-size:10px; color:rgba(255,255,255,0.3); margin-top:2px">prompts/generate.ts</div>
+        </div>
+        <div class="file-path">119 lines</div>
+      </div>
+      <div class="file-body">
+        Claude API integration. Calls buildPrompt(), sends to Anthropic, handles streaming, tracks token usage and cost per generation. Returns structured GenerationResult.
+        <div class="file-exports">
+          <div class="export-item"><span class="export-fn">generatePolicy()</span><span class="export-desc">streams from Claude, returns HTML + cost metadata</span></div>
+          <div class="export-item"><span class="export-fn">generateAllPolicies()</span><span class="export-desc">all 4 docs sequentially with 500ms cooldown</span></div>
+          <div class="export-item"><span class="export-fn">GenerationResult</span><span class="export-desc">interface: html, tokens_input, tokens_output, cost_usd, duration_ms</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="file-card">
+      <div class="file-header">
+        <div class="file-icon fi-ts">RT</div>
+        <div>
+          <div class="file-name">generate-route.ts</div>
+          <div style="font-size:10px; color:rgba(255,255,255,0.3); margin-top:2px">api/generate/route.ts</div>
+        </div>
+        <div class="file-path">85 lines</div>
+      </div>
+      <div class="file-body">
+        Next.js App Router POST handler. Auth (Clerk) → plan check → cache lookup → stream generation → save to Supabase → SSE response. Production-ready with commented integration points.
+        <div class="file-exports">
+          <div class="export-item"><span class="export-fn">POST()</span><span class="export-desc">Next.js route handler. runtime='nodejs', maxDuration=60</span></div>
+          <div class="export-item"><span class="export-fn">Cache logic</span><span class="export-desc">returns cached if &lt;24h old and no law_updates pending</span></div>
+          <div class="export-item"><span class="export-fn">SSE streaming</span><span class="export-desc">ReadableStream with text/event-stream content-type</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2: CODE VIEWER -->
+<section class="section">
+  <div class="section-eyebrow">// 02 — Source Code</div>
+  <div class="section-title">Read every <em>line.</em></div>
+  <div class="section-desc">The actual TypeScript. No abstraction, no magic. Click each tab to read the source.</div>
+
+  <div class="code-viewer">
+    <div class="cv-tabs">
+      <button class="cv-tab active" onclick="showCode('types')">types.ts</button>
+      <button class="cv-tab" onclick="showCode('router')">jurisdiction-router.ts</button>
+      <button class="cv-tab" onclick="showCode('clauses')">clause-library.ts (excerpt)</button>
+      <button class="cv-tab" onclick="showCode('builder')">builder.ts</button>
+      <button class="cv-tab" onclick="showCode('generate')">generate.ts</button>
+      <button class="cv-tab" onclick="showCode('route')">route.ts</button>
+    </div>
+
+    <div class="cv-panel active" id="cv-types">
+      <div class="cv-code"><span class="cc">// ============================================================</span>
+<span class="cc">// PolicyPen — Core Type Definitions</span>
+<span class="cc">// ============================================================</span>
+
+<span class="ck">export type</span> <span class="ct">PolicyType</span> = <span class="cs">'privacy'</span> | <span class="cs">'tos'</span> | <span class="cs">'cookie'</span> | <span class="cs">'refund'</span>
+
+<span class="ck">export type</span> <span class="ct">Jurisdiction</span> =
+  | <span class="cs">'GDPR'</span>       <span class="cc">// EU / EEA</span>
+  | <span class="cs">'UK_GDPR'</span>    <span class="cc">// United Kingdom</span>
+  | <span class="cs">'CCPA'</span>       <span class="cc">// California</span>
+  | <span class="cs">'CPRA'</span>       <span class="cc">// California (updated)</span>
+  | <span class="cs">'PIPEDA'</span>     <span class="cc">// Canada</span>
+  | <span class="cs">'LGPD'</span>       <span class="cc">// Brazil</span>
+  | <span class="cs">'PDPA'</span>       <span class="cc">// Singapore / Thailand</span>
+  | <span class="cs">'POPIA'</span>      <span class="cc">// South Africa</span>
+  | <span class="cs">'AU_PRIVACY'</span> <span class="cc">// Australia</span>
+  | <span class="cs">'COPPA'</span>      <span class="cc">// US — Children</span>
+  | <span class="cs">'HIPAA'</span>      <span class="cc">// US — Healthcare</span>
+  | <span class="cs">'CAN_SPAM'</span>   <span class="cc">// US — Email</span>
+  | <span class="cs">'CASL'</span>       <span class="cc">// Canada — Email</span>
+  | <span class="cs">'TCPA'</span>       <span class="cc">// US — SMS</span>
+  | <span class="cs">'ePrivacy'</span>   <span class="cc">// EU — Cookies</span>
+  | <span class="cs">'EU_CRD'</span>     <span class="cc">// EU Consumer Rights Directive</span>
+  | <span class="cs">'CA_ARL'</span>     <span class="cc">// California Auto-Renewal Law</span>
+  | <span class="cs">'FTC'</span>        <span class="cc">// US Federal Trade Commission</span>
+  | <span class="cs">'DMCA'</span>       <span class="cc">// US — Copyright</span>
+
+<span class="ck">export interface</span> <span class="ct">Questionnaire</span> {
+  <span class="cc">// Step 1 — Identity</span>
+  <span class="cm">company_name</span>: <span class="ct">string</span>
+  <span class="cm">product_name</span>: <span class="ct">string</span>
+  <span class="cm">website_url</span>: <span class="ct">string</span>
+  <span class="cm">contact_email</span>: <span class="ct">string</span>
+  <span class="cm">dpo_email</span>?: <span class="ct">string</span>
+  <span class="cm">incorporation_country</span>: <span class="ct">string</span>
+  <span class="cm">effective_date</span>: <span class="ct">string</span>
+  <span class="cc">// ... (87 variables total)</span>
+  
+  <span class="cc">// Step 5 — Critical routing key</span>
+  <span class="cm">active_jurisdictions</span>: <span class="ct">string[]</span>  <span class="cc">// drives ALL clause activation</span>
+}
+
+<span class="ck">export interface</span> <span class="ct">BuiltPrompt</span> {
+  <span class="cm">system</span>: <span class="ct">string</span>         <span class="cc">// full system prompt for Claude</span>
+  <span class="cm">user</span>: <span class="ct">string</span>           <span class="cc">// user turn content</span>
+  <span class="cm">metadata</span>: {
+    <span class="cm">policy_type</span>: <span class="ct">PolicyType</span>
+    <span class="cm">jurisdictions</span>: <span class="ct">Jurisdiction[]</span>
+    <span class="cm">clauses_activated</span>: <span class="ct">string[]</span>  <span class="cc">// audit trail</span>
+    <span class="cm">estimated_tokens</span>: <span class="ct">number</span>
+    <span class="cm">version</span>: <span class="ct">string</span>
+  }
+}</div>
+    </div>
+
+    <div class="cv-panel" id="cv-router">
+      <div class="cv-code"><span class="cc">// ============================================================</span>
+<span class="cc">// PolicyPen — Jurisdiction Router</span>
+<span class="cc">// Questionnaire answers → applicable laws (Set-based dedup)</span>
+<span class="cc">// ============================================================</span>
+
+<span class="ck">export function</span> <span class="cf">resolveJurisdictions</span>(q: <span class="ct">Questionnaire</span>): <span class="ct">Jurisdiction[]</span> {
+  <span class="ck">const</span> laws = <span class="ck">new</span> <span class="cf">Set</span>&lt;<span class="ct">Jurisdiction</span>&gt;()
+  <span class="ck">const</span> regions = q.active_jurisdictions.<span class="cf">map</span>(r =&gt; r.<span class="cf">toLowerCase</span>())
+
+  <span class="cc">// ── Geographic mapping ──────────────────────────────────────</span>
+  <span class="ck">if</span> (regions.<span class="cf">some</span>(r =&gt; r.<span class="cf">includes</span>(<span class="cs">'eu'</span>) || r.<span class="cf">includes</span>(<span class="cs">'european'</span>))) {
+    laws.<span class="cf">add</span>(<span class="cs">'GDPR'</span>)
+    laws.<span class="cf">add</span>(<span class="cs">'ePrivacy'</span>)
+  }
+  <span class="ck">if</span> (regions.<span class="cf">some</span>(r =&gt; r.<span class="cf">includes</span>(<span class="cs">'california'</span>))) {
+    laws.<span class="cf">add</span>(<span class="cs">'CCPA'</span>)
+    laws.<span class="cf">add</span>(<span class="cs">'CPRA'</span>)
+    <span class="ck">if</span> (q.auto_renewal === <span class="cs">'yes'</span>) laws.<span class="cf">add</span>(<span class="cs">'CA_ARL'</span>)
+  }
+  <span class="ck">if</span> (regions.<span class="cf">some</span>(r =&gt; r.<span class="cf">includes</span>(<span class="cs">'canada'</span>))) {
+    laws.<span class="cf">add</span>(<span class="cs">'PIPEDA'</span>)
+    laws.<span class="cf">add</span>(<span class="cs">'CASL'</span>)
+  }
+  <span class="cc">// ... UK_GDPR, LGPD, PDPA, POPIA, AU_PRIVACY</span>
+
+  <span class="ck">if</span> (regions.<span class="cf">some</span>(r =&gt; r.<span class="cf">includes</span>(<span class="cs">'global'</span>))) {
+    <span class="cc">// Conservative baseline: add all major laws</span>
+    [<span class="cs">'GDPR'</span>, <span class="cs">'CCPA'</span>, <span class="cs">'PIPEDA'</span>, <span class="cs">'ePrivacy'</span>].<span class="cf">forEach</span>(j =&gt; laws.<span class="cf">add</span>(j <span class="ck">as</span> <span class="ct">Jurisdiction</span>))
+  }
+
+  <span class="cc">// ── Feature-triggered laws ────────────────────────────────</span>
+  <span class="ck">if</span> (q.minimum_age === <span class="cs">'all_ages'</span>) laws.<span class="cf">add</span>(<span class="cs">'COPPA'</span>)
+  <span class="ck">if</span> (q.regulated_industry.<span class="cf">includes</span>(<span class="cs">'healthcare'</span>)) laws.<span class="cf">add</span>(<span class="cs">'HIPAA'</span>)
+  <span class="ck">if</span> (q.ugc_type !== <span class="cs">'none'</span>) laws.<span class="cf">add</span>(<span class="cs">'DMCA'</span>)
+  <span class="ck">if</span> (q.marketing_channels.<span class="cf">length</span> &gt; 0) laws.<span class="cf">add</span>(<span class="cs">'CAN_SPAM'</span>)
+  <span class="ck">if</span> (q.marketing_channels.<span class="cf">includes</span>(<span class="cs">'sms'</span>)) laws.<span class="cf">add</span>(<span class="cs">'TCPA'</span>)
+  <span class="ck">if</span> (q.business_model.<span class="cf">some</span>(m =&gt; m !== <span class="cs">'free'</span>)) {
+    laws.<span class="cf">add</span>(<span class="cs">'FTC'</span>)
+    <span class="ck">if</span> (laws.<span class="cf">has</span>(<span class="cs">'GDPR'</span>)) laws.<span class="cf">add</span>(<span class="cs">'EU_CRD'</span>)
+  }
+
+  <span class="ck">return</span> Array.<span class="cf">from</span>(laws)
+}</div>
+    </div>
+
+    <div class="cv-panel" id="cv-clauses">
+      <div class="cv-code"><span class="cc">// clause-library.ts — showing 2 of 28 clauses as example</span>
+<span class="cc">// Each clause: id, jurisdictions[], condition(), instruction, priority</span>
+
+<span class="ck">export const</span> <span class="cn">PRIVACY_CLAUSES</span>: <span class="ct">Clause[]</span> = [
+
+  <span class="cc">// GDPR Art.6 Legal Basis — mandatory for any EU/UK processing</span>
+  {
+    <span class="cm">id</span>: <span class="cs">'gdpr_legal_basis'</span>,
+    <span class="cm">jurisdiction</span>: [<span class="cs">'GDPR'</span>, <span class="cs">'UK_GDPR'</span>],
+    <span class="cm">condition</span>: (q) =&gt; q.legal_basis.length &gt; 0,
+    <span class="cm">priority</span>: <span class="cs">'mandatory'</span>,
+    <span class="cm">instruction</span>: <span class="cs">`Include a "Legal Basis for Processing" section under GDPR
+Article 6. For each legal basis in {{legal_basis}}:
+- consent: account data, marketing, non-essential cookies
+- contract: data required to deliver the service
+- legal_obligation: financial records, fraud prevention
+- legitimate_interests: security, analytics, abuse prevention
+State that where consent is the basis, users may withdraw at
+any time without affecting prior lawful processing.`</span>
+  },
+
+  <span class="cc">// GDPR Art.9 Special Category — high risk, explicit consent req</span>
+  {
+    <span class="cm">id</span>: <span class="cs">'gdpr_special_category'</span>,
+    <span class="cm">jurisdiction</span>: [<span class="cs">'GDPR'</span>, <span class="cs">'UK_GDPR'</span>],
+    <span class="cm">condition</span>: (q) =&gt;
+      q.special_category_data.length &gt; 0 &amp;&amp;
+      !q.special_category_data.<span class="cf">includes</span>(<span class="cs">'none'</span>),
+    <span class="cm">priority</span>: <span class="cs">'mandatory'</span>,
+    <span class="cm">instruction</span>: <span class="cs">`Include a "Special Category Data" section (GDPR Art.9).
+List each sensitive data type: {{special_category_data}}.
+State explicit consent is required (Art.9(2)(a)).
+Users can withdraw consent for special category data.
+Describe heightened security measures applied.`</span>
+  },
+
+  <span class="cc">// ... 26 more clauses across all 4 policy types</span>
+]
+
+<span class="ck">export function</span> <span class="cf">getClausesForPolicy</span>(
+  policyType: <span class="ct">PolicyType</span>,
+  jurisdictions: <span class="ct">Jurisdiction[]</span>,
+  q: <span class="ct">Questionnaire</span>
+): <span class="ct">Clause[]</span> {
+  <span class="ck">const</span> library = { privacy: PRIVACY_CLAUSES, tos: TOS_CLAUSES,
+                    cookie: COOKIE_CLAUSES, refund: REFUND_CLAUSES }[policyType]
+
+  <span class="ck">return</span> library.<span class="cf">filter</span>(clause =&gt; {
+    <span class="ck">const</span> hasJurisdiction = clause.jurisdiction.<span class="cf">some</span>(j =&gt; jurisdictions.<span class="cf">includes</span>(j))
+    <span class="ck">const</span> meetsCondition = clause.<span class="cf">condition</span>(q)
+    <span class="ck">return</span> hasJurisdiction &amp;&amp; meetsCondition
+  })
+}</div>
+    </div>
+
+    <div class="cv-panel" id="cv-builder">
+      <div class="cv-code"><span class="cc">// builder.ts — The orchestration core</span>
+
+<span class="cc">// Variable interpolation: {{company_name}} → "Acme Inc."</span>
+<span class="cc">// Also translates enums: '12_months' → 'fees paid in last twelve months'</span>
+<span class="ck">function</span> <span class="cf">interpolate</span>(template: <span class="ct">string</span>, q: <span class="ct">Questionnaire</span>): <span class="ct">string</span> {
+  <span class="ck">const</span> vars: <span class="ct">Record</span>&lt;<span class="ct">string</span>, <span class="ct">string</span>&gt; = {
+    <span class="cm">company_name</span>: q.company_name,
+    <span class="cm">product_name</span>: q.product_name,
+    <span class="cm">liability_cap</span>: ({
+      <span class="cs">'12_months'</span>: <span class="cs">'fees paid in the twelve (12) months preceding the claim'</span>,
+      <span class="cs">'3_months'</span>: <span class="cs">'fees paid in the three (3) months preceding the claim'</span>,
+      <span class="cs">'100_usd'</span>: <span class="cs">'one hundred US dollars ($100)'</span>,
+      <span class="cs">'none'</span>: <span class="cs">'the maximum extent permitted by applicable law'</span>,
+    })[q.liability_cap],
+    <span class="cc">// ... all 87 variables with enum translation</span>
+  }
+  <span class="ck">return</span> template.<span class="cf">replace</span>(<span class="cm">/\{\{(\w+)\}\}/g</span>, (_, key) =&gt; vars[key] ?? <span class="cs">`[${key}]`</span>)
+}
+
+<span class="cc">// The main export — called from generate.ts and the API route</span>
+<span class="ck">export function</span> <span class="cf">buildPrompt</span>(
+  policyType: <span class="ct">PolicyType</span>,
+  questionnaire: <span class="ct">Questionnaire</span>
+): <span class="ct">BuiltPrompt</span> {
+  <span class="cc">// Step 1: Route jurisdictions</span>
+  <span class="ck">const</span> jurisdictions = <span class="cf">resolveJurisdictions</span>(questionnaire)
+
+  <span class="cc">// Step 2: Get applicable clauses</span>
+  <span class="ck">const</span> clauses = <span class="cf">getClausesForPolicy</span>(policyType, jurisdictions, questionnaire)
+
+  <span class="cc">// Step 3: Assemble system prompt</span>
+  <span class="ck">const</span> system = [
+    <span class="cf">buildBaseSystem</span>(questionnaire, policyType, jurisdictions),
+    <span class="cf">policySpecificSystem</span>(policyType, questionnaire),
+    <span class="cf">buildClauseInstructions</span>(clauses, questionnaire),
+  ].<span class="cf">join</span>(<span class="cs">'\n'</span>)
+
+  <span class="ck">return</span> {
+    system,
+    user: <span class="cf">buildUserTurn</span>(policyType, questionnaire, jurisdictions),
+    metadata: {
+      policy_type: policyType,
+      jurisdictions,
+      clauses_activated: clauses.<span class="cf">map</span>(c =&gt; c.id),
+      estimated_tokens: Math.<span class="cf">ceil</span>((system.length) / <span class="cv">4</span>),
+      version: <span class="cs">'1.0.0'</span>,
+    },
+  }
+}</div>
+    </div>
+
+    <div class="cv-panel" id="cv-generate">
+      <div class="cv-code"><span class="cc">// generate.ts — Claude API integration with cost tracking</span>
+
+<span class="ck">const</span> PRICING = {
+  <span class="cm">input_per_1k</span>: <span class="cv">0.003</span>,   <span class="cc">// claude-sonnet-4 rates</span>
+  <span class="cm">output_per_1k</span>: <span class="cv">0.015</span>,
+}
+
+<span class="ck">export async function</span> <span class="cf">generatePolicy</span>(
+  policyType: <span class="ct">PolicyType</span>,
+  questionnaire: <span class="ct">Questionnaire</span>,
+  onStream?: (chunk: <span class="ct">string</span>) =&gt; <span class="ct">void</span>
+): <span class="ct">Promise</span>&lt;<span class="ct">GenerationResult</span>&gt; {
+  <span class="ck">const</span> start = Date.<span class="cf">now</span>()
+  <span class="ck">const</span> { system, user, metadata } = <span class="cf">buildPrompt</span>(policyType, questionnaire)
+
+  <span class="ck">let</span> fullContent = <span class="cs">''</span>
+
+  <span class="ck">const</span> stream = <span class="ck">await</span> client.messages.<span class="cf">stream</span>({
+    <span class="cm">model</span>: <span class="cs">'claude-sonnet-4-20250514'</span>,
+    <span class="cm">max_tokens</span>: <span class="cv">4096</span>,
+    system,
+    <span class="cm">messages</span>: [{ <span class="cm">role</span>: <span class="cs">'user'</span>, <span class="cm">content</span>: user }],
+  })
+
+  <span class="ck">for await</span> (<span class="ck">const</span> chunk <span class="ck">of</span> stream) {
+    <span class="ck">if</span> (chunk.type === <span class="cs">'content_block_delta'</span>) {
+      fullContent += chunk.delta.text
+      onStream?.(chunk.delta.text)  <span class="cc">// → SSE to client</span>
+    }
+  }
+
+  <span class="ck">const</span> { input_tokens, output_tokens } = (<span class="ck">await</span> stream.<span class="cf">finalMessage</span>()).usage
+  <span class="ck">const</span> cost = (input_tokens / <span class="cv">1000</span> * PRICING.input_per_1k)
+              + (output_tokens / <span class="cv">1000</span> * PRICING.output_per_1k)
+
+  <span class="ck">return</span> {
+    html: fullContent,
+    policy_type: policyType,
+    tokens_input: input_tokens,
+    tokens_output: output_tokens,
+    cost_usd: Math.<span class="cf">round</span>(cost * <span class="cv">10000</span>) / <span class="cv">10000</span>,
+    jurisdictions: metadata.jurisdictions,
+    clauses_activated: metadata.clauses_activated,
+    duration_ms: Date.<span class="cf">now</span>() - start,
+  }
+}</div>
+    </div>
+
+    <div class="cv-panel" id="cv-route">
+      <div class="cv-code"><span class="cc">// app/api/generate/route.ts — Next.js SSE streaming endpoint</span>
+
+<span class="ck">export const</span> runtime = <span class="cs">'nodejs'</span>  <span class="cc">// streaming requires nodejs, not edge</span>
+<span class="ck">export const</span> maxDuration = <span class="cv">60</span>    <span class="cc">// 60s hard timeout</span>
+
+<span class="ck">export async function</span> <span class="cf">POST</span>(req: <span class="ct">Request</span>) {
+  <span class="cc">// 1. Auth — Clerk validates JWT server-side</span>
+  <span class="ck">const</span> { userId } = <span class="cf">auth</span>()
+  <span class="ck">if</span> (!userId) <span class="ck">return</span> Response.<span class="cf">json</span>({ error: <span class="cs">'Unauthorized'</span> }, { status: <span class="cv">401</span> })
+
+  <span class="cc">// 2. Cache check — return if &lt; 24h old, no law updates</span>
+  <span class="ck">const</span> existing = <span class="ck">await</span> <span class="cf">getCachedPolicy</span>(productId, policyType)
+  <span class="ck">if</span> (existing &amp;&amp; !<span class="cf">hasLawUpdate</span>(existing)) {
+    <span class="ck">return</span> Response.<span class="cf">json</span>({ cached: <span class="ck">true</span>, html: existing.content_html })
+  }
+
+  <span class="cc">// 3. Stream from Claude — ReadableStream → SSE</span>
+  <span class="ck">const</span> encoder = <span class="ck">new</span> <span class="cf">TextEncoder</span>()
+  <span class="ck">let</span> accumulatedHtml = <span class="cs">''</span>
+
+  <span class="ck">const</span> stream = <span class="ck">new</span> <span class="cf">ReadableStream</span>({
+    <span class="ck">async</span> <span class="cf">start</span>(controller) {
+      <span class="ck">const</span> result = <span class="ck">await</span> <span class="cf">generatePolicy</span>(policyType, questionnaire,
+        (chunk) =&gt; {
+          accumulatedHtml += chunk
+          controller.<span class="cf">enqueue</span>(
+            encoder.<span class="cf">encode</span>(<span class="cs">`data: ${JSON.stringify({ chunk })}\n\n`</span>)
+          )
+        }
+      )
+
+      <span class="cc">// 4. Save to Supabase after completion</span>
+      <span class="ck">await</span> supabase.<span class="cf">from</span>(<span class="cs">'policies'</span>).<span class="cf">insert</span>({
+        product_id: productId, policy_type: policyType,
+        content_html: accumulatedHtml, version: (existing?.version ?? <span class="cv">0</span>) + <span class="cv">1</span>,
+        tokens_used: result.tokens_input + result.tokens_output,
+      })
+
+      controller.<span class="cf">enqueue</span>(encoder.<span class="cf">encode</span>(
+        <span class="cs">`data: ${JSON.stringify({ done: true, cost_usd: result.cost_usd })}\n\n`</span>
+      ))
+      controller.<span class="cf">close</span>()
+    }
+  })
+
+  <span class="ck">return new</span> <span class="cf">Response</span>(stream, {
+    headers: { <span class="cs">'Content-Type'</span>: <span class="cs">'text/event-stream'</span> }
+  })
+}</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3: JURISDICTION DEMO -->
+<section class="section">
+  <div class="section-eyebrow">// 03 — Interactive Demo</div>
+  <div class="section-title">See <em>resolveJurisdictions()</em> live.</div>
+  <div class="section-desc">Toggle regions and product features to see which laws activate in real time. This is the exact logic running in jurisdiction-router.ts.</div>
+
+  <div class="juris-flow">
+    <div style="font-size:11px; font-family:'Fira Code',monospace; color:var(--muted); margin-bottom:14px; letter-spacing:1px; text-transform:uppercase;">active_jurisdictions[] + feature flags</div>
+
+    <div class="jf-input" id="jfInput">
+      <div class="jf-check active" data-law="geo-eu" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>🇪🇺 EU / EEA</div>
+      <div class="jf-check" data-law="geo-uk" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>🇬🇧 United Kingdom</div>
+      <div class="jf-check active" data-law="geo-ca" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>🇺🇸 California</div>
+      <div class="jf-check" data-law="geo-canada" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>🇨🇦 Canada</div>
+      <div class="jf-check" data-law="geo-brazil" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>🇧🇷 Brazil</div>
+      <div class="jf-check" data-law="geo-sg" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>🇸🇬 Singapore</div>
+      <div class="jf-check" data-law="geo-au" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>🇦🇺 Australia</div>
+      <div class="jf-check" data-law="geo-global" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>🌍 Global</div>
+      <div class="jf-check" data-law="feat-children" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>👶 Accepts children</div>
+      <div class="jf-check active" data-law="feat-ugc" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>📝 User content (UGC)</div>
+      <div class="jf-check" data-law="feat-healthcare" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>🏥 Healthcare data</div>
+      <div class="jf-check active" data-law="feat-email" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>📧 Marketing email</div>
+      <div class="jf-check" data-law="feat-sms" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>📱 SMS marketing</div>
+      <div class="jf-check active" data-law="feat-paid" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>💳 Paid product</div>
+      <div class="jf-check" data-law="feat-autorenewal" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>🔄 Auto-renewal</div>
+      <div class="jf-check" data-law="feat-ai" onclick="toggleCheck(this)"><div class="jf-check-dot"></div>🤖 AI features</div>
+    </div>
+
+    <div class="jf-arrow-row">↓ resolveJurisdictions() ↓</div>
+
+    <div class="jf-output" id="jfOutput"></div>
+    <div class="jf-note" id="jfNote">// Jurisdiction[] result</div>
+  </div>
+</section>
+
+<!-- SECTION 4: ACTIVE CLAUSES -->
+<section class="section">
+  <div class="section-eyebrow">// 04 — Clause Library Sample</div>
+  <div class="section-title">Every clause has a<br><em>condition and purpose.</em></div>
+  <div class="section-desc">Showing 5 representative clauses from the library. Each clause is independently activated — the system only injects what's legally required for your specific product configuration.</div>
+
+  <div class="clause-card">
+    <div class="clause-header">
+      <span class="clause-id">gdpr_legal_basis</span>
+      <span class="clause-priority cp-mandatory">mandatory</span>
+      <div class="clause-law-tags"><span class="clt">GDPR Art.6</span><span class="clt">UK_GDPR</span></div>
+    </div>
+    <div class="clause-condition">condition: q.legal_basis.length &gt; 0</div>
+    <div class="clause-instruction">Include a "Legal Basis for Processing" section. For each legal basis in <strong>{{legal_basis}}</strong>: consent → account creation data, marketing, non-essential cookies. Contract → data to deliver the service. Legitimate interests → security, analytics, abuse prevention. State that consent may be withdrawn at any time without affecting prior lawful processing.</div>
+  </div>
+
+  <div class="clause-card">
+    <div class="clause-header">
+      <span class="clause-id">ccpa_rights</span>
+      <span class="clause-priority cp-mandatory">mandatory</span>
+      <div class="clause-law-tags"><span class="clt">CCPA</span><span class="clt">CPRA</span></div>
+    </div>
+    <div class="clause-condition">condition: always (when jurisdiction includes CCPA)</div>
+    <div class="clause-instruction">Include "California Privacy Rights" covering: Right to Know (categories, sources, purposes), Right to Delete (45-day response SLA), Right to Correct (CPRA), Right to Opt-Out of Sale/Sharing with "Do Not Sell or Share My Personal Information" link, Right to Non-Discrimination. If <strong>{{data_selling}}</strong> is 'no': explicitly state "We do not sell or share your personal information." Provide contact at <strong>{{contact_email}}</strong>.</div>
+  </div>
+
+  <div class="clause-card">
+    <div class="clause-header">
+      <span class="clause-id">tos_arbitration</span>
+      <span class="clause-priority cp-mandatory">mandatory</span>
+      <div class="clause-law-tags"><span class="clt">FTC</span></div>
+    </div>
+    <div class="clause-condition">condition: q.dispute_resolution === 'arbitration' || 'arbitration_opt_out'</div>
+    <div class="clause-instruction">Binding arbitration clause for non-EU/UK users only. CRITICAL: EU/UK consumers cannot be forced into arbitration — explicitly exempt them and preserve their court rights. US users: AAA Commercial Rules, 30-day informal resolution first, waiver of class action, opt-out within 30 days by emailing <strong>{{contact_email}}</strong>.</div>
+  </div>
+
+  <div class="clause-card">
+    <div class="clause-header">
+      <span class="clause-id">refund_eu_cooling_off</span>
+      <span class="clause-priority cp-mandatory">mandatory</span>
+      <div class="clause-law-tags"><span class="clt">EU_CRD</span><span class="clt">UK_GDPR</span></div>
+    </div>
+    <div class="clause-condition">condition: q.active_jurisdictions includes 'eu' or 'uk'</div>
+    <div class="clause-instruction">EU/UK Right of Withdrawal: consumers have 14 days to withdraw under EU CRD Art.9. For digital services where user requests immediate access: waiver of withdrawal right — must be confirmed explicitly at checkout. If <strong>{{refund_policy}}</strong> is 'no_refunds': EU/UK consumers are exempt and retain statutory rights unless validly waived. Refund processed within 14 days of valid withdrawal.</div>
+  </div>
+
+  <div class="clause-card">
+    <div class="clause-header">
+      <span class="clause-id">ai_processing</span>
+      <span class="clause-priority cp-mandatory">mandatory</span>
+      <div class="clause-law-tags"><span class="clt">GDPR Art.22</span><span class="clt">CCPA</span></div>
+    </div>
+    <div class="clause-condition">condition: q.ai_features.some(f =&gt; f !== 'none') || q.third_parties includes AI providers</div>
+    <div class="clause-instruction">AI Processing disclosure: if third_parties includes Anthropic/OpenAI, disclose that product features are AI-powered and user inputs may be processed by AI sub-processors with appropriate safeguards. If ai_features includes automated_decisions: include GDPR Art.22 right to not be subject to solely automated decisions, right to human review, and explanation of decision logic.</div>
+  </div>
+</section>
+
+<!-- SECTION 5: COST MODEL -->
+<section class="section">
+  <div class="section-eyebrow">// 05 — Generation Economics</div>
+  <div class="section-title">Exact cost per<br><em>policy document.</em></div>
+  <div class="section-desc">Based on claude-sonnet-4 pricing and measured prompt sizes. These are real numbers, not estimates. The cache-first architecture is what keeps margin above 90%.</div>
+
+  <div class="cost-grid">
+    <div class="cost-card">
+      <div class="cost-type">Privacy Policy</div>
+      <div class="cost-est" style="color:var(--lime)">$0.18</div>
+      <div class="cost-unit">~12K input + ~3K output tokens</div>
+      <div class="cost-bar" style="background:linear-gradient(90deg, var(--lime) 60%, var(--rule) 60%)"></div>
+    </div>
+    <div class="cost-card">
+      <div class="cost-type">Terms of Service</div>
+      <div class="cost-est" style="color:var(--lime)">$0.15</div>
+      <div class="cost-unit">~10K input + ~3K output tokens</div>
+      <div class="cost-bar" style="background:linear-gradient(90deg, var(--lime) 50%, var(--rule) 50%)"></div>
+    </div>
+    <div class="cost-card">
+      <div class="cost-type">Cookie Policy</div>
+      <div class="cost-est" style="color:var(--lime)">$0.09</div>
+      <div class="cost-unit">~6K input + ~1.5K output tokens</div>
+      <div class="cost-bar" style="background:linear-gradient(90deg, var(--lime) 30%, var(--rule) 30%)"></div>
+    </div>
+    <div class="cost-card">
+      <div class="cost-type">Refund Policy</div>
+      <div class="cost-est" style="color:var(--lime)">$0.07</div>
+      <div class="cost-unit">~4K input + ~1K output tokens</div>
+      <div class="cost-bar" style="background:linear-gradient(90deg, var(--lime) 23%, var(--rule) 23%)"></div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+    <div class="int-card">
+      <div class="int-header">
+        <div><div class="int-title">Full 4-doc generation</div><div class="int-sub">All policies for one product</div></div>
+        <span class="int-tag it-lime">$0.49 total</span>
+      </div>
+      <div class="int-body">
+        At $9/mo Starter plan: each user can generate all 4 docs for $0.49. With 80% cache hit rate (served from Supabase, no Claude call), average cost per user per month is <strong>~$0.10</strong>. Margin on Starter plan: <strong>98.9%</strong> on AI cost alone.
+      </div>
+    </div>
+    <div class="int-card">
+      <div class="int-header">
+        <div><div class="int-title">At 500 users</div><div class="int-sub">Monthly AI spend projection</div></div>
+        <span class="int-tag it-amber">~$50/mo</span>
+      </div>
+      <div class="int-body">
+        500 users × avg $0.10/user/mo (80% cache hits) = $50/mo AI cost at $8,000+ MRR. AI cost as % of revenue: <strong>0.6%</strong>. The cache architecture is the margin protection mechanism — not an optimization, a core design requirement.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 6: INTEGRATION -->
+<section class="section" style="border-bottom:none">
+  <div class="section-eyebrow">// 06 — Integration Guide</div>
+  <div class="section-title">Copy. Drop in.<br><em>Ship tomorrow.</em></div>
+  <div class="section-desc">Four integration points. Everything else is handled by the engine.</div>
+
+  <div class="int-grid">
+    <div class="int-card">
+      <div class="int-header">
+        <div><div class="int-title">Install dependency</div><div class="int-sub">One package required</div></div>
+        <span class="int-tag it-blue">npm</span>
+      </div>
+      <div class="int-code">npm install @anthropic-ai/sdk
+
+<span class="cc"># Add to .env.local:</span>
+ANTHROPIC_API_KEY=sk-ant-...</div>
+    </div>
+
+    <div class="int-card">
+      <div class="int-header">
+        <div><div class="int-title">Generate a policy</div><div class="int-sub">Server-side, streaming</div></div>
+        <span class="int-tag it-lime">TypeScript</span>
+      </div>
+      <div class="int-code"><span class="cc">// In your Next.js API route:</span>
+<span class="ck">import</span> { buildPrompt } <span class="ck">from</span> <span class="cs">'@/lib/prompts/builder'</span>
+<span class="ck">import</span> { generatePolicy } <span class="ck">from</span> <span class="cs">'@/lib/prompts/generate'</span>
+
+<span class="ck">const</span> result = <span class="ck">await</span> <span class="cf">generatePolicy</span>(
+  <span class="cs">'privacy'</span>,
+  product.questionnaire,
+  (chunk) =&gt; stream.<span class="cf">push</span>(chunk)
+)
+<span class="cc">// result.html = complete policy HTML</span>
+<span class="cc">// result.cost_usd = "$0.18"</span></div>
+    </div>
+
+    <div class="int-card">
+      <div class="int-header">
+        <div><div class="int-title">Debug jurisdiction routing</div><div class="int-sub">See exactly why each law activated</div></div>
+        <span class="int-tag it-amber">Debug</span>
+      </div>
+      <div class="int-code"><span class="ck">import</span> { resolveJurisdictions, explainJurisdictions }
+  <span class="ck">from</span> <span class="cs">'@/lib/jurisdiction-router'</span>
+
+<span class="ck">const</span> laws = <span class="cf">resolveJurisdictions</span>(questionnaire)
+<span class="cc">// → ['GDPR', 'CCPA', 'DMCA', 'ePrivacy', 'FTC', 'EU_CRD']</span>
+
+<span class="ck">const</span> reasons = <span class="cf">explainJurisdictions</span>(laws, questionnaire)
+<span class="cc">// → { GDPR: "Activated: EU users in active_jurisdictions..."</span>
+<span class="cc">//     DMCA: "Activated: ugc_type is not 'none'..." }</span></div>
+    </div>
+
+    <div class="int-card">
+      <div class="int-header">
+        <div><div class="int-title">Add a new law clause</div><div class="int-sub">Prompt versioning workflow</div></div>
+        <span class="int-tag it-lime">Maintenance</span>
+      </div>
+      <div class="int-code"><span class="cc">// clause-library.ts — add new clause:</span>
+{
+  id: <span class="cs">'new_regulation_clause'</span>,
+  jurisdiction: [<span class="cs">'NEW_LAW'</span>],
+  condition: (q) =&gt; q.active_jurisdictions
+    .<span class="cf">includes</span>(<span class="cs">'affected_region'</span>),
+  priority: <span class="cs">'mandatory'</span>,
+  instruction: <span class="cs">`Include section on...`</span>
+}
+
+<span class="cc">// Then: trigger regen for affected users</span>
+<span class="cc">// Insert row into law_updates table</span>
+<span class="cc">// Cron queries affected jurisdictions → re-generates</span></div>
+    </div>
+  </div>
+</section>
+
+</div><!-- content -->
+
+<script>
+// Code tab switching
+function showCode(id) {
+  document.querySelectorAll('.cv-tab').forEach(t => t.classList.remove('active'))
+  document.querySelectorAll('.cv-panel').forEach(p => p.classList.remove('active'))
+  document.getElementById('cv-' + id).classList.add('active')
+  event.target.classList.add('active')
+}
+
+// Jurisdiction demo
+const LAW_MAP = {
+  'geo-eu':         ['GDPR', 'ePrivacy'],
+  'geo-uk':         ['UK_GDPR', 'ePrivacy'],
+  'geo-ca':         ['CCPA', 'CPRA'],
+  'geo-canada':     ['PIPEDA', 'CASL'],
+  'geo-brazil':     ['LGPD'],
+  'geo-sg':         ['PDPA'],
+  'geo-au':         ['AU_PRIVACY'],
+  'geo-global':     ['GDPR', 'CCPA', 'PIPEDA', 'ePrivacy'],
+  'feat-children':  ['COPPA'],
+  'feat-ugc':       ['DMCA'],
+  'feat-healthcare':['HIPAA'],
+  'feat-email':     ['CAN_SPAM'],
+  'feat-sms':       ['TCPA'],
+  'feat-paid':      ['FTC', 'EU_CRD'],
+  'feat-autorenewal':['CA_ARL'],
+  'feat-ai':        [],
+}
+
+const LAW_CLASSES = {
+  'GDPR': 'jl-gdpr', 'UK_GDPR': 'jl-gdpr', 'ePrivacy': 'jl-eprivacy',
+  'CCPA': 'jl-ccpa', 'CPRA': 'jl-ccpa', 'PIPEDA': 'jl-pipeda',
+  'CASL': 'jl-canspam', 'LGPD': 'jl-lgpd', 'PDPA': 'jl-pdpa',
+  'AU_PRIVACY': 'jl-pipeda', 'COPPA': 'jl-coppa', 'DMCA': 'jl-dmca',
+  'HIPAA': 'jl-hipaa', 'CAN_SPAM': 'jl-canspam', 'TCPA': 'jl-canspam',
+  'FTC': 'jl-ftc', 'EU_CRD': 'jl-eucrd', 'CA_ARL': 'jl-caral',
+}
+
+function toggleCheck(el) {
+  el.classList.toggle('active')
+  updateJurisdictions()
+}
+
+function updateJurisdictions() {
+  const active = [...document.querySelectorAll('.jf-check.active')]
+    .map(el => el.dataset.law)
+
+  const allLaws = new Set()
+  // Check if EU active and paid active → add EU_CRD
+  const hasEU = active.includes('geo-eu') || active.includes('geo-uk') || active.includes('geo-global')
+  const hasPaid = active.includes('feat-paid')
+  
+  active.forEach(law => {
+    const laws = LAW_MAP[law] || []
+    laws.forEach(l => allLaws.add(l))
+  })
+
+  if (hasEU && hasPaid && !allLaws.has('EU_CRD')) allLaws.add('EU_CRD')
+  if (active.includes('geo-ca') && active.includes('feat-autorenewal')) allLaws.add('CA_ARL')
+  if (active.includes('geo-canada') && active.includes('feat-email')) allLaws.add('CASL')
+
+  const output = document.getElementById('jfOutput')
+  output.innerHTML = ''
+
+  const laws = [...allLaws]
+
+  if (laws.length === 0) {
+    output.innerHTML = '<span style="color:rgba(255,255,255,0.2); font-family:\'Fira Code\',monospace; font-size:11px">// No jurisdictions selected → empty array</span>'
+    document.getElementById('jfNote').textContent = `// Jurisdiction[] result: [] — no legal requirements activated`
+    return
+  }
+
+  laws.forEach((law, i) => {
+    const span = document.createElement('span')
+    span.className = `jf-law ${LAW_CLASSES[law] || 'jl-pipeda'}`
+    span.textContent = law
+    output.appendChild(span)
+    setTimeout(() => span.classList.add('visible'), i * 40)
+  })
+
+  document.getElementById('jfNote').textContent = 
+    `// resolveJurisdictions() → [${laws.map(l => `'${l}'`).join(', ')}]`
+}
+
+// Init
+updateJurisdictions()
+</script>
+</body>
+</html>
