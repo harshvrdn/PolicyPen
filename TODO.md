@@ -1,90 +1,75 @@
 # PolicyPen TODO
 
-Living backlog for building PolicyPen (AI-generated legal policies for SaaS/indie makers).
+Living backlog for PolicyPen. Updated against the current repository state.
 
-## How to use this file
-- Move items across sections as work progresses.
-- Keep tasks small and testable.
-- Add acceptance criteria for any non-trivial feature.
+## How to maintain this file
+- Mark completed items with `[x]`, active work with `[~]`, and pending work with `[ ]`.
+- Keep tasks implementation-sized and testable.
+- When adding non-trivial tasks, include a short acceptance note in the item.
 
-## Backlog
+## Current status snapshot
 
-### 0) Project foundation
-- [ ] Bootstrap Next.js 14 app (App Router) with TypeScript and Tailwind CSS.
-- [ ] Add base project scripts (`dev`, `build`, `start`, `lint`, `typecheck`).
-- [ ] Configure formatting/linting defaults (ESLint + Prettier or chosen standard).
-- [ ] Add `.env.example` with required variables (Supabase, Stripe, app URL).
-- [ ] Add initial app layout, metadata, and global styles.
+### Already implemented
+- [x] Next.js + TypeScript project scaffold with npm scripts.
+- [x] Supabase helpers split by runtime (`lib/supabase/client.ts`, `server.ts`, `middleware.ts`).
+- [x] Auth session refresh middleware wired in `middleware.ts`.
+- [x] Core legal generation pipeline (`jurisdiction-router` → `clause-library` → `prompts/builder` → `prompts/generate`).
+- [x] Streaming generation API route at `POST /api/generate` with cache logic and Supabase persistence.
+- [x] Initial Supabase schema + RLS for `policies` and `law_updates`.
+- [x] Policy wizard UI scaffold (`PolicyWizard.jsx`) with multi-step questionnaire and review state.
 
-### 1) UI system
-- [ ] Initialize shadcn/ui and set component + style conventions.
-- [ ] Build reusable layout primitives (container, section, card, form shell).
-- [ ] Create top-level pages: landing, generator flow, pricing, auth callback, dashboard.
-- [ ] Ensure server components by default; use client components only where interactivity is required.
+### Partially implemented / needs follow-up
+- [~] `PolicyWizard.jsx` exists but is not wired to real SSE `/api/generate` results yet.
+- [~] Documentation exists but is inconsistent (`README.md`, `AGENTS.md`, `CLAUDE.md` disagree in places).
+- [~] Supabase typed schema exists, but regeneration workflow after DB changes should be documented and automated.
 
-### 2) Supabase integration (auth + database)
-- [ ] Add `lib/supabase.ts` and centralize Supabase client setup.
-- [ ] Implement authentication flow (sign up, sign in, sign out, session handling).
-- [ ] Define initial database schema for:
-  - users / profiles
-  - projects (company/product context)
-  - generated_documents
-  - questionnaire_submissions
-  - subscriptions / billing_state
-- [ ] Add Row Level Security policies for user-owned data.
-- [ ] Add migration workflow for schema changes.
+## Priority backlog
 
-### 3) Questionnaire + generation pipeline
-- [ ] Define 2-minute questionnaire fields and validation rules.
-- [ ] Build multi-step questionnaire UX with save/resume support.
-- [ ] Implement generation service that outputs:
-  - Privacy Policy
-  - Terms of Service
-  - Cookie Policy
-  - Refund Policy
-- [ ] Add versioning for regenerated documents.
-- [ ] Add editable post-generation review flow.
+### P0 — Product-critical (next)
+- [ ] Wire `PolicyWizard.jsx` to call `POST /api/generate` and render real-time stream chunks + completion payload.
+- [ ] Add auth UI routes (login, signup, reset password) and protect generator/dashboard access paths.
+- [ ] Add top-level App Router pages and route structure (`/`, `/generate`, auth group, dashboard group).
+- [ ] Create `.env.example` with all required variables used by current code.
+- [ ] Add request validation in `app/api/generate/route.ts` (strict body schema, required questionnaire keys).
 
-### 4) Stripe billing
-- [ ] Add Stripe SDK integration and checkout flow.
-- [ ] Define free vs paid limits (e.g., drafts, exports, regeneration count).
-- [ ] Handle webhooks for subscription lifecycle updates.
-- [ ] Sync billing state into Supabase.
-- [ ] Gate premium features based on subscription status.
+### P1 — Billing + gating
+- [ ] Add Stripe integration layer (`lib/stripe.ts`) and checkout flow.
+- [ ] Implement `app/api/webhooks/stripe/route.ts` for subscription lifecycle events.
+- [ ] Extend schema/types for subscriptions and plan state.
+- [ ] Add server-side generation limits/gating (free vs paid) enforced in generation route.
 
-### 5) Export + delivery
-- [ ] Implement document export options (copy, markdown, HTML, PDF if needed).
-- [ ] Add hosted policy pages with shareable URLs.
-- [ ] Add “last updated” and version history display.
-- [ ] Add safe regeneration warnings before overwrite.
+### P1 — Dashboard + document lifecycle
+- [ ] Build dashboard views for generated policy history and detail view.
+- [ ] Add regenerate/version UX connected to `policies.version`.
+- [ ] Add delete/archive actions for user-owned policy records.
+- [ ] Add policy metadata UI (tokens, cost, generated time, jurisdictions activated).
 
-### 6) Quality + security
-- [ ] Add TypeScript strict mode and run regular type checks.
-- [ ] Add automated tests for core paths (auth, questionnaire, generation, billing guards).
-- [ ] Add basic E2E tests for happy path document generation.
-- [ ] Add server-side input validation + rate limiting for generation endpoints.
-- [ ] Add audit logging for generation and billing events.
+### P2 — Quality, security, and reliability
+- [ ] Add automated tests for jurisdiction routing, clause activation, and prompt builder output.
+- [ ] Add integration tests for `/api/generate` auth + validation + cache behavior.
+- [ ] Add rate limiting and abuse protection on generation endpoint.
+- [ ] Add structured error handling/logging around Anthropic failures and DB write failures.
+- [ ] Add CI pipeline for `lint`, `type-check`, and tests on pull requests.
 
-### 7) Deployment + operations
-- [ ] Configure Vercel environments (preview + production).
-- [ ] Configure environment variables in Vercel (no hardcoded secrets in code).
-- [ ] Add CI checks (lint, typecheck, tests) on pull requests.
-- [ ] Add monitoring/error reporting.
-- [ ] Add backup and rollback notes for critical data paths.
+### P2 — Export and delivery
+- [ ] Add document export options (HTML download first; PDF/DOCX later if required).
+- [ ] Add publish/share flow for hosted policy pages.
+- [ ] Add change history / last-updated visibility in UI.
 
-### 8) Documentation
-- [ ] Expand `README.md` with local setup and architecture overview.
-- [ ] Add contributor guide (branching, commits, PR checklist).
-- [ ] Document Supabase schema and RLS policy rationale.
-- [ ] Document Stripe webhook setup and local testing.
+### P3 — Cleanup and consistency
+- [ ] Split `PolicyWizard.jsx` into smaller components (current file is very large).
+- [ ] Align naming conventions between `lib/types.ts`, questionnaire fields, and UI labels.
+- [ ] Consolidate duplicated project guidance across `README.md`, `AGENTS.md`, and `CLAUDE.md`.
 
-## Current focus (recommended order)
-1. Bootstrap app foundation.
-2. Set up `lib/supabase.ts` + auth.
-3. Build questionnaire MVP.
-4. Implement generation pipeline MVP.
-5. Add Stripe checkout + subscription gating.
+## Suggested working order
+1. Wire wizard to real generation endpoint.
+2. Implement auth pages and route protection UX.
+3. Add dashboard/history for generated documents.
+4. Add Stripe billing and subscription gating.
+5. Add tests + CI + hardening.
 
-## Notes
-- Keep components under 150 lines; extract helpers/subcomponents early.
-- Use `process.env` for all configuration; never hardcode secrets.
+## Ongoing guardrails
+- Keep components under ~150 lines where practical; extract subcomponents/hooks early.
+- Prefer server components unless client interactivity is required.
+- Use `process.env` for all config/secrets; never hardcode secrets.
+- Keep Supabase access through `lib/supabase/*` helpers.
