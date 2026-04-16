@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Instrument+Sans:wght@400;500;600&display=swap');
+
+:root {
+  --paper: #fefcf8;
+  --paper2: #f8f5ef;
+  --paper3: #f0ece2;
+  --rule: #e4dfd3;
+  --rule2: #d4cfc3;
+  --ink: #1c1810;
+  --ink2: #3a3428;
+  --muted: #7a7060;
+  --accent: #1a4a2e;
+  --accent-hover: #143d25;
+  --accent-light: #e8f3ec;
+  --accent-border: #b8d8c4;
+  --red: #7a1a1a;
+  --red-light: #faeaea;
+  --serif: 'Libre Baskerville', serif;
+  --sans: 'Instrument Sans', sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
