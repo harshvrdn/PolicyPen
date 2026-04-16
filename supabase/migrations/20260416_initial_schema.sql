@@ -1,0 +1,22 @@
+-- ============================================================
+-- Migration: 20260416_initial_schema
+-- Applied via Supabase MCP on 2026-04-16
+-- Project ID: kbgzqchlmstzetdapujj
+-- ============================================================
+-- This migration is already applied to production.
+-- Tracked here for version control reference only.
+-- Applied migrations (in order):
+--   20260416071157 enable_extensions
+--   20260416071207 create_enum_types
+--   20260416071220 create_users_table
+--   20260416071236 create_products_table
+--   20260416071254 create_policies_table
+--   20260416071313 create_law_updates_and_acknowledgements
+--   20260416071328 create_indexes
+--   20260416071337 create_updated_at_triggers
+--   20260416071359 create_business_logic_functions
+--   20260416071419 enable_rls_policies
+--   20260416071439 seed_law_updates
+--   20260416071501 create_utility_views_and_functions
+-- See supabase/schema.sql for the full canonical schema.
+-- ============================================================
