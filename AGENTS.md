@@ -36,8 +36,9 @@ Generates legally-structured Privacy Policy, Terms of Service, Cookie Policy, an
 | Prompt builder | ✅ `prompts/builder.ts` |
 | Claude streaming integration | ✅ `prompts/generate.ts` |
 | Generation API route | ✅ `app/api/generate/route.ts` |
+| Root layout + global CSS | ✅ `app/layout.tsx`, `app/globals.css` |
+| Auth pages UI | ✅ `app/(auth)/` — login, signup, reset-password, update-password |
 | PolicyWizard UI component | 🚧 `PolicyWizard.jsx` (scaffolded, not wired to API) |
-| Auth pages UI | ❌ Not yet built |
 | Stripe integration | ❌ Not yet built |
 | Document history / management | ❌ Not yet built |
 | PDF / DOCX export | ❌ Not yet built |
@@ -48,9 +49,16 @@ Generates legally-structured Privacy Policy, Terms of Service, Cookie Policy, an
 
 ```
 /app
+  layout.tsx               — root layout (fonts, metadata)
+  globals.css              — CSS custom properties + reset (PolicyPen design tokens)
   /api/generate/route.ts   — core generation endpoint (auth → cache → Claude SSE → save)
   /api/webhooks/stripe/    — Stripe webhook handler (not yet built)
-  /(auth)/                 — login, signup, password-reset pages (not yet built)
+  /(auth)/
+    layout.tsx             — centred card shell shared by all auth pages
+    /login/                — email/password sign-in + Server Action
+    /signup/               — sign-up with confirm-password check + Server Action
+    /reset-password/       — request password-reset email + Server Action
+    /reset-password/update/— set new password after clicking email link
   /(dashboard)/            — protected routes (not yet built)
 /components
   /ui/                     — shadcn primitives only
@@ -171,7 +179,7 @@ npm start
 
 ### What to build next (priority order)
 
-1. Auth pages — `/app/(auth)/login`, `/signup`, `/reset-password`
+1. ~~Auth pages — `/app/(auth)/login`, `/signup`, `/reset-password`~~ ✅ Done
 2. Stripe integration — `/lib/stripe.ts`, `/app/api/webhooks/stripe/route.ts`, subscription gating in generation route
 3. Dashboard — document history, editor, settings pages under `/app/(dashboard)/`
 4. Wire `PolicyWizard.jsx` to `POST /api/generate` with SSE streaming display
