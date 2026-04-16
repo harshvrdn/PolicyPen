@@ -17,7 +17,7 @@ Generates legally-structured Privacy Policy, Terms of Service, Cookie Policy, an
 | Styling | Tailwind CSS + shadcn/ui |
 | Auth + Database | Supabase (`@supabase/ssr`) |
 | AI | Anthropic Claude API (`@anthropic-ai/sdk`, model `claude-sonnet-4-20250514`) |
-| Payments | Stripe *(not yet wired — env vars ready)* |
+| Payments | Dodo Payments *(not yet wired — env vars ready)* |
 | Deploy | Vercel |
 | Package manager | **npm** (`package-lock.json` is the lockfile — do not use pnpm/yarn) |
 
@@ -39,7 +39,7 @@ Generates legally-structured Privacy Policy, Terms of Service, Cookie Policy, an
 | Root layout + global CSS | ✅ `app/layout.tsx`, `app/globals.css` |
 | Auth pages UI | ✅ `app/(auth)/` — login, signup, reset-password, update-password |
 | PolicyWizard UI component | 🚧 `PolicyWizard.jsx` (scaffolded, not wired to API) |
-| Stripe integration | ❌ Not yet built |
+| Dodo Payments integration | ❌ Not yet built |
 | Document history / management | ❌ Not yet built |
 | PDF / DOCX export | ❌ Not yet built |
 
@@ -52,7 +52,7 @@ Generates legally-structured Privacy Policy, Terms of Service, Cookie Policy, an
   layout.tsx               — root layout (fonts, metadata)
   globals.css              — CSS custom properties + reset (PolicyPen design tokens)
   /api/generate/route.ts   — core generation endpoint (auth → cache → Claude SSE → save)
-  /api/webhooks/stripe/    — Stripe webhook handler (not yet built)
+  /api/webhooks/dodo/      — Dodo Payments webhook handler (not yet built)
   /(auth)/
     layout.tsx             — centred card shell shared by all auth pages
     /login/                — email/password sign-in + Server Action
@@ -123,9 +123,9 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ANTHROPIC_API_KEY=
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+DODO_API_KEY=
+DODO_WEBHOOK_SECRET=
+NEXT_PUBLIC_DODO_PUBLISHABLE_KEY=
 NEXT_PUBLIC_APP_URL=         # e.g. https://policypenpro.com
 ```
 
@@ -180,7 +180,7 @@ npm start
 ### What to build next (priority order)
 
 1. ~~Auth pages — `/app/(auth)/login`, `/signup`, `/reset-password`~~ ✅ Done
-2. Stripe integration — `/lib/stripe.ts`, `/app/api/webhooks/stripe/route.ts`, subscription gating in generation route
+2. Dodo Payments integration — `/lib/dodo.ts`, `/app/api/webhooks/dodo/route.ts`, subscription gating in generation route
 3. Dashboard — document history, editor, settings pages under `/app/(dashboard)/`
 4. Wire `PolicyWizard.jsx` to `POST /api/generate` with SSE streaming display
 5. Export (PDF / DOCX)
