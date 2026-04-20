@@ -3,6 +3,7 @@ import Link from "next/link"
 import { getProductBySlug, getProductPolicyStatus } from "@/lib/db/dal"
 import type { PolicyType, PolicyStatus, ProductPolicyStatus } from "@/types/supabase"
 import CopyButton from "@/components/CopyButton"
+import CustomDomainSection from "./CustomDomainSection"
 
 const POLICY_TYPES: { type: PolicyType; label: string }[] = [
   { type: "privacy_policy",   label: "Privacy Policy" },
@@ -128,6 +129,13 @@ export default async function ProductPage({
       </div>
 
       <EmbedSection slug={product.slug} />
+
+      <CustomDomainSection
+        productId={product.id}
+        initialDomain={product.custom_domain ?? null}
+        initialVerified={product.custom_domain_verified ?? false}
+        initialVerifiedAt={product.custom_domain_verified_at ?? null}
+      />
     </div>
   )
 }

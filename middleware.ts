@@ -10,6 +10,7 @@
 
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
 // ─── Route classification ──────────────────────────────────────────────────
 
@@ -43,8 +44,36 @@ const isProtectedRoute = createRouteMatcher([
   "/api/policies(.*)",
 ])
 
+// ─── Custom domain detection ──────────────────────────────────────────────
+function handleCustomDomain(request: NextRequest): NextResponse | null {
+  const host = request.headers.get("host") ?? ""
+  const appHost = process.env.NEXT_PUBLIC_APP_URL
+    ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname
+    : "policypen.io"
+
+  const isCustomDomain =
+    host !== appHost &&
+    !host.includes("localhost") &&
+    !host.includes("vercel.app")
+
+  if (!isCustomDomain) return null
+
+  const url = request.nextUrl.clone()
+  const rewriteUrl = new URL(
+    `/domain/${encodeURIComponent(host)}${url.pathname}`,
+    url
+  )
+  const response = NextResponse.rewrite(rewriteUrl)
+  response.headers.set("x-custom-domain", host)
+  return response
+}
+
 // ─── Middleware ────────────────────────────────────────────────────────────
 export default clerkMiddleware(async (auth, request) => {
+  // Custom domain: rewrite to /domain/[host] before auth checks
+  const customDomainResponse = handleCustomDomain(request)
+  if (customDomainResponse) return customDomainResponse
+
   const { userId } = await auth()
   const { nextUrl } = request
 

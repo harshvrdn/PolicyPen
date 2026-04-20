@@ -70,13 +70,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   }
 
-  const supabase = createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createServiceClient() as any
 
   try {
     switch (event.type) {
       case "payment.succeeded": {
         const data = event.data
-        const clerkUserId = data.metadata?.clerk_user_id as string | undefined
+        const metadata = data.metadata as Record<string, unknown> | undefined
+        const clerkUserId = metadata?.clerk_user_id as string | undefined
         if (!clerkUserId) {
           console.error("[dodo-webhook] payment.succeeded missing clerk_user_id in metadata")
           break
@@ -94,7 +96,7 @@ export async function POST(request: Request) {
               dodo_subscription_id: data.subscription_id as string,
               plan,
               status: "active",
-              current_period_end: data.current_period_end as string ?? null,
+              current_period_end: (data.current_period_end as string) ?? null,
             },
             { onConflict: "user_id" }
           )
@@ -110,7 +112,7 @@ export async function POST(request: Request) {
 
         const { error } = await supabase
           .from("user_subscriptions")
-          .update({ status: "cancelled", current_period_end: data.current_period_end as string ?? null })
+          .update({ status: "cancelled", current_period_end: (data.current_period_end as string) ?? null })
           .eq("dodo_subscription_id", subscriptionId)
 
         if (error) throw error
