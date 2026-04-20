@@ -5,6 +5,7 @@
 // ============================================================
 
 import { NextRequest } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 import { createClient } from '@/lib/supabase/server'
 import { generatePolicy } from '@/prompts/generate'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -19,14 +20,13 @@ type PolicyInsert = Database['public']['Tables']['policies']['Insert']
 
 export async function POST(req: NextRequest) {
   // ── 1. Auth ────────────────────────────────────────────────
-  // Cast to fully-typed client: @supabase/ssr v0.5.x doesn't forward the
-  // Database generic through its cookie wrapper's type inference chain.
-  const supabase = (await createClient()) as unknown as SupabaseClient<Database>
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const { userId } = await auth()
 
-  if (authError || !user) {
+  if (!userId) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const supabase = (await createClient()) as unknown as SupabaseClient<Database>
 
   // ── 2. Parse body ─────────────────────────────────────────
   let policyType: PolicyType
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
   const cacheResult = await supabase
     .from('policies')
     .select('id, content_html, version, created_at')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .eq('product_name', productName)
     .eq('policy_type', policyType)
     .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
         const nextVersion = (existing?.version ?? 0) + 1
 
         const insertData: PolicyInsert = {
-          user_id:      user.id,
+          user_id:      userId,
           product_name: productName,
           policy_type:  policyType,
           content_html: accumulatedHtml,

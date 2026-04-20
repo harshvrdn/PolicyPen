@@ -20,7 +20,7 @@ const isPublicRoute = createRouteMatcher([
   "/features",
   "/blog(.*)",
   "/p/(.*)",                    // Hosted policy pages: /p/[slug]
-  "/api/webhooks/(.*)",         // Clerk + Stripe webhooks
+  "/api/webhooks/(.*)",         // Clerk + Dodo webhooks
   "/api/ack/(.*)",              // Policy acknowledgement endpoint (public)
   "/sign-in(.*)",
   "/sign-up(.*)",
