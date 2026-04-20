@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import Link from "next/link"
 import { getProductBySlug, getProductPolicyStatus } from "@/lib/db/dal"
 import type { PolicyType, PolicyStatus, ProductPolicyStatus } from "@/types/supabase"
+import CopyButton from "@/components/CopyButton"
 
 const POLICY_TYPES: { type: PolicyType; label: string }[] = [
   { type: "privacy_policy",   label: "Privacy Policy" },
@@ -124,6 +125,74 @@ export default async function ProductPage({
         <span className="text-muted" style={{ marginLeft: 12 }}>
           Generates all 4 policies in sequence
         </span>
+      </div>
+
+      <EmbedSection slug={product.slug} />
+    </div>
+  )
+}
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://policypen.io"
+
+function EmbedSection({ slug }: { slug: string }) {
+  const scriptTag = `<script src="${APP_URL}/widget.js" data-product="${slug}"></script>`
+  const iframeTag = `<iframe src="${APP_URL}/api/widget/${slug}/iframe" width="100%" height="40" frameborder="0" scrolling="no" style="border:none;"></iframe>`
+
+  return (
+    <div className="section">
+      <div className="section-title">Embed</div>
+      <p className="text-muted" style={{ marginBottom: 16, fontSize: 13 }}>
+        Add a policy footer to your site. Available on Builder and Studio plans.
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink2)" }}>Script tag</span>
+            <span className="text-muted" style={{ fontSize: 12 }}>Floating footer bar, auto-dismissible</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "stretch", gap: 8 }}>
+            <pre style={{
+              flex: 1,
+              background: "var(--paper3)",
+              border: "1px solid var(--rule2)",
+              borderRadius: 4,
+              padding: "10px 12px",
+              fontSize: 12,
+              fontFamily: "monospace",
+              overflowX: "auto",
+              margin: 0,
+              color: "var(--ink2)",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-all",
+            }}>{scriptTag}</pre>
+            <CopyButton text={scriptTag} />
+          </div>
+        </div>
+
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink2)" }}>Iframe embed</span>
+            <span className="text-muted" style={{ fontSize: 12 }}>Inline policy link strip</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "stretch", gap: 8 }}>
+            <pre style={{
+              flex: 1,
+              background: "var(--paper3)",
+              border: "1px solid var(--rule2)",
+              borderRadius: 4,
+              padding: "10px 12px",
+              fontSize: 12,
+              fontFamily: "monospace",
+              overflowX: "auto",
+              margin: 0,
+              color: "var(--ink2)",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-all",
+            }}>{iframeTag}</pre>
+            <CopyButton text={iframeTag} />
+          </div>
+        </div>
       </div>
     </div>
   )
