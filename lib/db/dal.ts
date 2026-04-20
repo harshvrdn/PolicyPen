@@ -410,6 +410,47 @@ export async function getPolicyVersionHistory(
 }
 
 // ═════════════════════════════════════════════════════════════
+// PUBLIC DATA FETCHERS (no auth — service client)
+// ═════════════════════════════════════════════════════════════
+
+/** Get product + all active published policies by slug (public) */
+export async function getPublicProduct(
+  slug: string
+): Promise<{ product: Product; policies: Policy[] } | null> {
+  const supabase = createServiceClient()
+
+  const { data: product } = await supabase
+    .from("products")
+    .select("*")
+    .eq("slug", slug)
+    .eq("is_active", true)
+    .single()
+
+  if (!product) return null
+
+  const { data: policies } = await supabase
+    .from("policies")
+    .select("*")
+    .eq("product_id", product.id)
+    .eq("is_current_version", true)
+    .eq("status", "active")
+    .not("published_at", "is", null)
+    .order("policy_type", { ascending: true })
+
+  return { product, policies: policies ?? [] }
+}
+
+/** Get product + single active policy by slug + type (public) */
+export async function getPublicPolicy(
+  slug: string,
+  policyType: PolicyType
+): Promise<{ product: Product; policy: Policy } | null> {
+  const result = await getPublishedPolicy(slug, policyType)
+  if (!result) return null
+  return { product: result.product, policy: result.policy }
+}
+
+// ═════════════════════════════════════════════════════════════
 // LAW UPDATES
 // ═════════════════════════════════════════════════════════════
 
