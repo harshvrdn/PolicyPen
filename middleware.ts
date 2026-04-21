@@ -7,33 +7,28 @@
  *   3. Redirects authenticated users away from auth pages
  *   4. Lets public routes through (landing, hosted policy pages, webhooks)
  */
-
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 // ─── Route classification ──────────────────────────────────────────────────
-
-// Public: no auth needed
 const isPublicRoute = createRouteMatcher([
-  "/",                          // Landing page
+  "/",
   "/pricing",
   "/features",
   "/blog(.*)",
-  "/p/(.*)",                    // Hosted policy pages: /p/[slug]
-  "/api/webhooks/(.*)",         // Clerk + Dodo webhooks
-  "/api/ack/(.*)",              // Policy acknowledgement endpoint (public)
+  "/p/(.*)",
+  "/api/webhooks/(.*)",
+  "/api/ack/(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
 ])
 
-// Auth pages: redirect away if already signed in
 const isAuthRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
 ])
 
-// Protected: requires auth
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
   "/products(.*)",
@@ -53,6 +48,7 @@ function handleCustomDomain(request: NextRequest): NextResponse | null {
 
   const isCustomDomain =
     host !== appHost &&
+    host !== `www.${appHost}` &&        // ← fix: treat www as app host
     !host.includes("localhost") &&
     !host.includes("vercel.app")
 
@@ -70,19 +66,16 @@ function handleCustomDomain(request: NextRequest): NextResponse | null {
 
 // ─── Middleware ────────────────────────────────────────────────────────────
 export default clerkMiddleware(async (auth, request) => {
-  // Custom domain: rewrite to /domain/[host] before auth checks
   const customDomainResponse = handleCustomDomain(request)
   if (customDomainResponse) return customDomainResponse
 
   const { userId } = await auth()
   const { nextUrl } = request
 
-  // Authenticated user hitting auth pages → redirect to dashboard
   if (userId && isAuthRoute(request)) {
     return NextResponse.redirect(new URL("/dashboard", nextUrl))
   }
 
-  // Unauthenticated user hitting protected route → redirect to sign-in
   if (!userId && isProtectedRoute(request)) {
     const signInUrl = new URL("/sign-in", nextUrl)
     signInUrl.searchParams.set("redirect_url", nextUrl.pathname)
@@ -94,9 +87,7 @@ export default clerkMiddleware(async (auth, request) => {
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and static files
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
     "/(api|trpc)(.*)",
   ],
 }
