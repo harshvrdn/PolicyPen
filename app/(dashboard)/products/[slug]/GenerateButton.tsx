@@ -9,7 +9,6 @@ interface Props {
   productSlug: string
   policyType: PolicyType
   questionnaire: Record<string, unknown>
-  label: string
   hasExisting: boolean
 }
 
@@ -25,7 +24,6 @@ export default function GenerateButton({
   productId,
   policyType,
   questionnaire,
-  label,
   hasExisting,
 }: Props) {
   const router = useRouter()

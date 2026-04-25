@@ -378,10 +378,10 @@ export async function canUserGeneratePolicy(
 ): Promise<{ allowed: boolean; reason?: string; plan?: string; policies_remaining?: number }> {
   const supabase = await createServerClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await supabase.rpc("can_user_generate_policy", {
+  const { data, error } = await (supabase.rpc as any)("can_user_generate_policy", {
     p_user_id: userId,
     p_product_id: productId,
-  } as any)
+  })
 
   if (error) throw new Error(`[DAL:canUserGeneratePolicy] ${error.message}`)
   return data as { allowed: boolean; reason?: string; plan?: string; policies_remaining?: number }

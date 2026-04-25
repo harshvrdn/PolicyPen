@@ -97,7 +97,6 @@ export default async function ProductPage({
                     productSlug={product.slug}
                     policyType={type}
                     questionnaire={product.questionnaire_data as Record<string, unknown> ?? {}}
-                    label={label}
                     hasExisting={hasPolicy}
                   />
                   {isActive && (
