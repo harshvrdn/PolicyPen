@@ -1,37 +1,31 @@
 /**
  * POST /api/webhooks/dodo
  *
- * Syncs Dodo Payments subscription lifecycle → Supabase user_subscriptions
+ * Verifies Dodo Payments HMAC-SHA256 webhook signature,
+ * logs the event type, and stubs fulfillment logic.
  *
- * Events handled:
- *   payment.succeeded        → activate subscription, set plan tier
- *   subscription.cancelled   → mark cancelled, downgrade user
- *   subscription.renewed     → extend current_period_end
- *
- * Setup:
- *   1. Dodo Dashboard → Webhooks → Add endpoint:
- *      https://yourdomain.com/api/webhooks/dodo
- *   2. Subscribe to above events
- *   3. Copy signing secret → DODO_WEBHOOK_SECRET env var
+ * Env required:
+ *   DODO_PAYMENTS_WEBHOOK_KEY — signing secret from Dodo Dashboard → Developer → Webhooks
  */
 
 import { headers } from "next/headers"
 import { NextResponse } from "next/server"
-import { createServiceClient } from "@/lib/supabase/client"
 
-const PLAN_FROM_PRICE: Record<string, string> = {
-  // Support both naming conventions
-  ...(process.env.DODO_PRICE_ID_STARTER ? { [process.env.DODO_PRICE_ID_STARTER]: "starter" } : {}),
-  ...(process.env.DODO_PRICE_ID_BUILDER ? { [process.env.DODO_PRICE_ID_BUILDER]: "builder" } : {}),
-  ...(process.env.DODO_PRICE_ID_STUDIO  ? { [process.env.DODO_PRICE_ID_STUDIO]:  "studio"  } : {}),
-  ...(process.env.NEXT_PUBLIC_PRICE_ID_STARTER ? { [process.env.NEXT_PUBLIC_PRICE_ID_STARTER]: "starter" } : {}),
-  ...(process.env.NEXT_PUBLIC_PRICE_ID_BUILDER ? { [process.env.NEXT_PUBLIC_PRICE_ID_BUILDER]: "builder" } : {}),
-  ...(process.env.NEXT_PUBLIC_PRICE_ID_STUDIO  ? { [process.env.NEXT_PUBLIC_PRICE_ID_STUDIO]:  "studio"  } : {}),
-}
+// ─── Signature verification ────────────────────────────────────────────────
 
 async function verifySignature(body: string, sig: string): Promise<boolean> {
-  const secret = process.env.DODO_PAYMENTS_WEBHOOK_KEY ?? process.env.DODO_WEBHOOK_SECRET
-  if (!secret) return false
+  const secret = process.env.DODO_PAYMENTS_WEBHOOK_KEY
+  if (!secret) {
+    console.error("[dodo-webhook] DODO_PAYMENTS_WEBHOOK_KEY is not set")
+    return false
+  }
+
+  // Dodo sends: "sha256=<hex-digest>"
+  const [scheme, signatureHex] = sig.split("=")
+  if (scheme !== "sha256" || !signatureHex) {
+    console.error("[dodo-webhook] Unexpected signature format:", sig)
+    return false
+  }
 
   const encoder = new TextEncoder()
   const key = await crypto.subtle.importKey(
@@ -42,9 +36,6 @@ async function verifySignature(body: string, sig: string): Promise<boolean> {
     ["verify"]
   )
 
-  const [, signatureHex] = sig.split("=")
-  if (!signatureHex) return false
-
   const signatureBytes = Uint8Array.from(
     signatureHex.match(/.{2}/g)!.map((b) => parseInt(b, 16))
   )
@@ -52,16 +43,22 @@ async function verifySignature(body: string, sig: string): Promise<boolean> {
   return crypto.subtle.verify("HMAC", key, signatureBytes, encoder.encode(body))
 }
 
+// ─── Route handler ─────────────────────────────────────────────────────────
+
 export async function POST(request: Request) {
   const body = await request.text()
   const headerPayload = await headers()
-  const sig = headerPayload.get("webhook-signature") ?? headerPayload.get("x-dodo-signature")
+
+  // Dodo may send either header name
+  const sig =
+    headerPayload.get("webhook-signature") ??
+    headerPayload.get("x-dodo-signature")
 
   if (!sig) {
+    console.error("[dodo-webhook] Missing signature header")
     return NextResponse.json({ error: "Missing webhook signature" }, { status: 400 })
   }
 
-  // Also check DODO_WEBHOOK_SECRET (old) and DODO_PAYMENTS_WEBHOOK_KEY (new)
   const isValid = await verifySignature(body, sig)
   if (!isValid) {
     console.error("[dodo-webhook] Signature verification failed")
@@ -72,83 +69,52 @@ export async function POST(request: Request) {
   try {
     event = JSON.parse(body)
   } catch {
+    console.error("[dodo-webhook] Failed to parse JSON body")
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServiceClient() as any
+  console.log(`[dodo-webhook] Received event: ${event.type}`)
 
-  try {
-    switch (event.type) {
-      case "payment.succeeded": {
-        const data = event.data
-        const metadata = data.metadata as Record<string, unknown> | undefined
-        const clerkUserId = metadata?.clerk_user_id as string | undefined
-        if (!clerkUserId) {
-          console.error("[dodo-webhook] payment.succeeded missing clerk_user_id in metadata")
-          break
-        }
+  // ─── Event handlers (stubbed) ──────────────────────────────────────────
 
-        const priceId = data.price_id as string | undefined
-        const plan = (priceId && PLAN_FROM_PRICE[priceId]) ?? "starter"
-
-        const { error } = await supabase
-          .from("user_subscriptions")
-          .upsert(
-            {
-              user_id: clerkUserId,
-              dodo_customer_id: data.customer_id as string,
-              dodo_subscription_id: data.subscription_id as string,
-              plan,
-              status: "active",
-              current_period_end: (data.current_period_end as string) ?? null,
-            },
-            { onConflict: "user_id" }
-          )
-
-        if (error) throw error
-        console.log(`[dodo-webhook] payment.succeeded: ${clerkUserId} → ${plan}`)
-        break
-      }
-
-      case "subscription.cancelled": {
-        const data = event.data
-        const subscriptionId = data.subscription_id as string
-
-        const { error } = await supabase
-          .from("user_subscriptions")
-          .update({ status: "cancelled", current_period_end: (data.current_period_end as string) ?? null })
-          .eq("dodo_subscription_id", subscriptionId)
-
-        if (error) throw error
-        console.log(`[dodo-webhook] subscription.cancelled: ${subscriptionId}`)
-        break
-      }
-
-      case "subscription.renewed": {
-        const data = event.data
-        const subscriptionId = data.subscription_id as string
-
-        const { error } = await supabase
-          .from("user_subscriptions")
-          .update({
-            status: "active",
-            current_period_end: data.current_period_end as string,
-          })
-          .eq("dodo_subscription_id", subscriptionId)
-
-        if (error) throw error
-        console.log(`[dodo-webhook] subscription.renewed: ${subscriptionId}`)
-        break
-      }
-
-      default:
-        console.log(`[dodo-webhook] Unhandled event: ${event.type}`)
+  switch (event.type) {
+    case "payment.succeeded": {
+      // TODO: activate subscription in Supabase
+      // const { clerk_user_id } = event.data.metadata
+      // const plan = PLAN_FROM_PRICE[event.data.price_id]
+      // await upsert user_subscriptions: { user_id, plan, status: "active", ... }
+      console.log("[dodo-webhook] STUB payment.succeeded — fulfillment pending")
+      break
     }
-  } catch (err) {
-    console.error("[dodo-webhook] DB operation failed:", err)
-    return NextResponse.json({ error: "Database error" }, { status: 500 })
+
+    case "subscription.active": {
+      // TODO: same as payment.succeeded — mark subscription active
+      console.log("[dodo-webhook] STUB subscription.active — fulfillment pending")
+      break
+    }
+
+    case "subscription.cancelled": {
+      // TODO: update user_subscriptions: { status: "cancelled" }
+      // downgrade user plan to "free" after current_period_end
+      console.log("[dodo-webhook] STUB subscription.cancelled — fulfillment pending")
+      break
+    }
+
+    case "subscription.renewed": {
+      // TODO: update user_subscriptions: { status: "active", current_period_end: ... }
+      console.log("[dodo-webhook] STUB subscription.renewed — fulfillment pending")
+      break
+    }
+
+    case "payment.failed": {
+      // TODO: notify user, optionally pause access
+      console.log("[dodo-webhook] STUB payment.failed — fulfillment pending")
+      break
+    }
+
+    default:
+      console.log(`[dodo-webhook] Unhandled event type: ${event.type}`)
   }
 
-  return NextResponse.json({ received: true })
+  return NextResponse.json({ received: true }, { status: 200 })
 }
