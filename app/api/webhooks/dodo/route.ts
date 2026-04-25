@@ -20,13 +20,17 @@ import { NextResponse } from "next/server"
 import { createServiceClient } from "@/lib/supabase/client"
 
 const PLAN_FROM_PRICE: Record<string, string> = {
-  [process.env.NEXT_PUBLIC_PRICE_ID_STARTER!]: "starter",
-  [process.env.NEXT_PUBLIC_PRICE_ID_BUILDER!]: "builder",
-  [process.env.NEXT_PUBLIC_PRICE_ID_STUDIO!]: "studio",
+  // Support both naming conventions
+  ...(process.env.DODO_PRICE_ID_STARTER ? { [process.env.DODO_PRICE_ID_STARTER]: "starter" } : {}),
+  ...(process.env.DODO_PRICE_ID_BUILDER ? { [process.env.DODO_PRICE_ID_BUILDER]: "builder" } : {}),
+  ...(process.env.DODO_PRICE_ID_STUDIO  ? { [process.env.DODO_PRICE_ID_STUDIO]:  "studio"  } : {}),
+  ...(process.env.NEXT_PUBLIC_PRICE_ID_STARTER ? { [process.env.NEXT_PUBLIC_PRICE_ID_STARTER]: "starter" } : {}),
+  ...(process.env.NEXT_PUBLIC_PRICE_ID_BUILDER ? { [process.env.NEXT_PUBLIC_PRICE_ID_BUILDER]: "builder" } : {}),
+  ...(process.env.NEXT_PUBLIC_PRICE_ID_STUDIO  ? { [process.env.NEXT_PUBLIC_PRICE_ID_STUDIO]:  "studio"  } : {}),
 }
 
 async function verifySignature(body: string, sig: string): Promise<boolean> {
-  const secret = process.env.DODO_WEBHOOK_SECRET
+  const secret = process.env.DODO_PAYMENTS_WEBHOOK_KEY ?? process.env.DODO_WEBHOOK_SECRET
   if (!secret) return false
 
   const encoder = new TextEncoder()
@@ -57,6 +61,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing webhook signature" }, { status: 400 })
   }
 
+  // Also check DODO_WEBHOOK_SECRET (old) and DODO_PAYMENTS_WEBHOOK_KEY (new)
   const isValid = await verifySignature(body, sig)
   if (!isValid) {
     console.error("[dodo-webhook] Signature verification failed")

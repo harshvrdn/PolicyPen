@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useUser } from "@clerk/nextjs"
+import { useRouter } from "next/navigation"
 import type { User } from "@/types/supabase"
 
 interface Props {
@@ -29,7 +30,30 @@ const PRICING = [
 
 export default function SettingsTabs({ dbUser }: Props) {
   const [tab, setTab] = useState<"account" | "billing">("account")
+  const [upgrading, setUpgrading] = useState<string | null>(null)
   const { user: clerkUser } = useUser()
+  const router = useRouter()
+
+  async function handleUpgrade(plan: string) {
+    setUpgrading(plan)
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      })
+      const data = await res.json()
+      if (data.checkout_url) {
+        router.push(data.checkout_url)
+      } else {
+        alert(data.error ?? "Something went wrong. Please try again.")
+      }
+    } catch {
+      alert("Failed to start checkout. Please try again.")
+    } finally {
+      setUpgrading(null)
+    }
+  }
 
   const email = clerkUser?.primaryEmailAddress?.emailAddress ?? dbUser?.email ?? "—"
   const name = [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(" ") || dbUser?.full_name || "—"
@@ -100,32 +124,41 @@ export default function SettingsTabs({ dbUser }: Props) {
       {tab === "billing" && (
         <>
           <div className="settings-section">
-            <div className="settings-section-title">Payment provider</div>
-            <div className="card" style={{ color: "var(--muted)", fontSize: 14 }}>
-              Billing powered by Dodo Payments — coming soon. Upgrade options will appear here.
-            </div>
-          </div>
-
-          <div className="settings-section">
             <div className="settings-section-title">Plans</div>
             <div className="pricing-grid">
-              {PRICING.map((p) => (
-                <div key={p.name} className={`pricing-card${p.featured ? " featured" : ""}`}>
-                  <div className="pricing-plan-name">{p.name}</div>
-                  <div className="pricing-price">
-                    <sup>$</sup>{p.price}
-                    <span className="pricing-price-mo">/mo</span>
+              {PRICING.map((p) => {
+                const planKey = p.name.toLowerCase()
+                const isCurrentPlan = plan === planKey
+                const isLoading = upgrading === planKey
+                return (
+                  <div key={p.name} className={`pricing-card${p.featured ? " featured" : ""}`}>
+                    <div className="pricing-plan-name">{p.name}</div>
+                    <div className="pricing-price">
+                      <sup>$</sup>{p.price}
+                      <span className="pricing-price-mo">/mo</span>
+                    </div>
+                    <ul className="pricing-features">
+                      {p.features.map((f) => (
+                        <li key={f}>{f}</li>
+                      ))}
+                    </ul>
+                    {isCurrentPlan ? (
+                      <button className="btn btn-secondary" disabled style={{ width: "100%", justifyContent: "center" }}>
+                        Current plan
+                      </button>
+                    ) : (
+                      <button
+                        className={`btn${p.featured ? " btn-primary" : " btn-secondary"}`}
+                        style={{ width: "100%", justifyContent: "center" }}
+                        disabled={isLoading || !!upgrading}
+                        onClick={() => handleUpgrade(planKey)}
+                      >
+                        {isLoading ? "Redirecting…" : `Upgrade to ${p.name}`}
+                      </button>
+                    )}
                   </div>
-                  <ul className="pricing-features">
-                    {p.features.map((f) => (
-                      <li key={f}>{f}</li>
-                    ))}
-                  </ul>
-                  <button className="btn btn-secondary" disabled style={{ width: "100%", justifyContent: "center" }}>
-                    Coming soon
-                  </button>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </>

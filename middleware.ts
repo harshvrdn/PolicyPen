@@ -18,10 +18,13 @@ const isPublicRoute = createRouteMatcher([
   "/features",
   "/blog(.*)",
   "/p/(.*)",
+  "/domain/(.*)",
   "/api/webhooks/(.*)",
   "/api/ack/(.*)",
+  "/api/widget/(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/checkout/success",
 ])
 
 const isAuthRoute = createRouteMatcher([
