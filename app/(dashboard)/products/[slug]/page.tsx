@@ -4,6 +4,7 @@ import { getProductBySlug, getProductPolicyStatus } from "@/lib/db/dal"
 import type { PolicyType, PolicyStatus, ProductPolicyStatus } from "@/types/supabase"
 import CopyButton from "@/components/CopyButton"
 import CustomDomainSection from "./CustomDomainSection"
+import GenerateButton from "./GenerateButton"
 
 const POLICY_TYPES: { type: PolicyType; label: string }[] = [
   { type: "privacy_policy",   label: "Privacy Policy" },
@@ -91,26 +92,23 @@ export default async function ProductPage({
                 )}
 
                 <div className="policy-card-actions">
-                  {!hasPolicy ? (
-                    <button className="btn btn-primary btn-sm" disabled title="Generation coming soon">
-                      Generate
-                    </button>
-                  ) : (
-                    <>
-                      <button className="btn btn-secondary btn-sm" disabled title="Regeneration coming soon">
-                        Regenerate
-                      </button>
-                      {isActive && (
-                        <a
-                          href={`/p/${product.slug}?type=${type}`}
-                          className="btn btn-secondary btn-sm"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View
-                        </a>
-                      )}
-                    </>
+                  <GenerateButton
+                    productId={product.id}
+                    productSlug={product.slug}
+                    policyType={type}
+                    questionnaire={product.questionnaire_data as Record<string, unknown> ?? {}}
+                    label={label}
+                    hasExisting={hasPolicy}
+                  />
+                  {isActive && (
+                    <a
+                      href={`/p/${product.slug}/${type}`}
+                      className="btn btn-secondary btn-sm"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View
+                    </a>
                   )}
                 </div>
               </div>
@@ -119,14 +117,7 @@ export default async function ProductPage({
         </div>
       </div>
 
-      <div className="section">
-        <button className="btn btn-primary" disabled title="Coming soon">
-          Generate All Policies
-        </button>
-        <span className="text-muted" style={{ marginLeft: 12 }}>
-          Generates all 4 policies in sequence
-        </span>
-      </div>
+
 
       <EmbedSection slug={product.slug} />
 

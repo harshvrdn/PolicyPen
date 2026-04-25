@@ -169,24 +169,22 @@ export async function POST(request: Request) {
 
       case "user.deleted": {
         const { data } = event
-        // Soft-delete: deactivate all products (policies cascade to hosted pages)
-        // Hard user deletion would violate audit trail (acknowledgements)
-        const { error } = await supabase
-          .from("products")
-          .update({ is_active: false })
-          .eq(
-            "user_id",
-            supabase
-              .from("users")
-              .select("id")
-              .eq("clerk_id", data.id)
-              .single() as unknown as string
-          )
+        // Look up internal UUID first, then soft-delete all products
+        const { data: userData } = await supabase
+          .from("users")
+          .select("id")
+          .eq("clerk_id", data.id)
+          .single()
 
-        // For GDPR right-to-erasure, implement a separate DSAR flow
-        // that anonymizes PII while retaining audit records
-        if (error) {
-          console.warn(`[clerk-webhook] user.deleted soft-delete warning:`, error)
+        if (userData?.id) {
+          const { error } = await supabase
+            .from("products")
+            .update({ is_active: false })
+            .eq("user_id", userData.id)
+
+          if (error) {
+            console.warn(`[clerk-webhook] user.deleted soft-delete warning:`, error)
+          }
         }
         console.log(`[clerk-webhook] user.deleted: ${data.id} → products deactivated`)
         break

@@ -1,81 +1,92 @@
 // ============================================================
 // PolicyPen — Generation API Route
 // POST /api/generate
-// Auth → cache check → Claude stream → Supabase save → SSE
+// Auth → plan check → Claude stream → Supabase save → SSE
 // ============================================================
 
 import { NextRequest } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { createClient } from '@/lib/supabase/server'
 import { generatePolicy } from '@/prompts/generate'
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { PolicyType, Questionnaire } from '@/lib/types'
-import type { Database } from '@/types/database'
+import {
+  getCurrentUser,
+  canUserGeneratePolicy,
+  createPolicyRecord,
+  savePolicyContent,
+  markPolicyError,
+} from '@/lib/db/dal'
+import type { PolicyType } from '@/types/supabase'
+import type { Questionnaire } from '@/lib/types'
 
-export const runtime     = 'nodejs'  // streaming requires nodejs, not edge
-export const maxDuration = 60        // 60s hard timeout for long generations
+export const runtime     = 'nodejs'
+export const maxDuration = 60
 
-type PolicyRow    = Database['public']['Tables']['policies']['Row']
-type PolicyInsert = Database['public']['Tables']['policies']['Insert']
+// Map short names used in UI → DB enum values
+const POLICY_TYPE_MAP: Record<string, PolicyType> = {
+  privacy:  'privacy_policy',
+  tos:      'terms_of_service',
+  cookie:   'cookie_policy',
+  refund:   'refund_policy',
+}
 
 export async function POST(req: NextRequest) {
   // ── 1. Auth ────────────────────────────────────────────────
   const { userId } = await auth()
-
   if (!userId) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const supabase = (await createClient()) as unknown as SupabaseClient<Database>
-
   // ── 2. Parse body ─────────────────────────────────────────
-  let policyType: PolicyType
+  let policyTypeRaw: string
   let questionnaire: Questionnaire
-  let productName: string
+  let productId: string
 
   try {
     const body = await req.json()
-    policyType    = body.policy_type    as PolicyType
-    questionnaire = body.questionnaire  as Questionnaire
-    productName   = questionnaire.product_name ?? 'unnamed'
+    policyTypeRaw = body.policy_type as string
+    questionnaire = body.questionnaire as Questionnaire
+    productId     = body.product_id as string
 
-    if (!(['privacy', 'tos', 'cookie', 'refund'] as string[]).includes(policyType)) {
-      return Response.json({ error: 'Invalid policy_type' }, { status: 400 })
+    if (!productId) {
+      return Response.json({ error: 'product_id is required' }, { status: 400 })
+    }
+    if (!POLICY_TYPE_MAP[policyTypeRaw]) {
+      return Response.json({ error: 'Invalid policy_type. Use: privacy, tos, cookie, refund' }, { status: 400 })
     }
   } catch {
     return Response.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  // ── 3. Cache check — return if < 24h old ──────────────────
-  const cacheResult = await supabase
-    .from('policies')
-    .select('id, content_html, version, created_at')
-    .eq('user_id', userId)
-    .eq('product_name', productName)
-    .eq('policy_type', policyType)
-    .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const policyType = POLICY_TYPE_MAP[policyTypeRaw]
 
-  const existing = cacheResult.data as Pick<PolicyRow, 'id' | 'content_html' | 'version' | 'created_at'> | null
-
-  // Check if a pending law_update invalidates the cache
-  const lawUpdateResult = await supabase
-    .from('law_updates')
-    .select('id')
-    .contains('affects_policy_types', [policyType])
-    .gt('created_at', existing?.created_at ?? '1970-01-01')
-    .limit(1)
-    .maybeSingle()
-
-  const lawUpdate = lawUpdateResult.data
-
-  if (existing && !lawUpdate) {
-    return Response.json({ cached: true, html: existing.content_html })
+  // ── 3. Get user + plan check ──────────────────────────────
+  const dbUser = await getCurrentUser(userId).catch(() => null)
+  if (!dbUser) {
+    return Response.json({ error: 'User not found. Try signing out and back in.' }, { status: 404 })
   }
 
-  // ── 4. Stream from Claude → SSE ───────────────────────────
+  const canGenerate = await canUserGeneratePolicy(dbUser.id, productId).catch(() => ({ allowed: false, reason: 'Plan check failed' }))
+  if (!canGenerate.allowed) {
+    return Response.json({ error: canGenerate.reason ?? 'Plan limit reached. Upgrade to generate more policies.' }, { status: 403 })
+  }
+
+  // ── 4. Create pending policy record ───────────────────────
+  let policyId: string
+  try {
+    const record = await createPolicyRecord({
+      product_id:   productId,
+      user_id:      dbUser.id,
+      policy_type:  policyType,
+      title:        `${questionnaire.product_name ?? 'Product'} — ${policyType.replace(/_/g, ' ')}`,
+      status:       'generating',
+      version:      1,
+    })
+    policyId = record.id
+  } catch (err) {
+    console.error('[generate] Failed to create policy record:', err)
+    return Response.json({ error: 'Failed to initialise policy record' }, { status: 500 })
+  }
+
+  // ── 5. Stream from Claude → SSE ───────────────────────────
   const encoder       = new TextEncoder()
   let accumulatedHtml = ''
 
@@ -83,7 +94,8 @@ export async function POST(req: NextRequest) {
     async start(controller) {
       try {
         const result = await generatePolicy(
-          policyType,
+          // prompts/generate.ts expects short names
+          policyTypeRaw as 'privacy' | 'tos' | 'cookie' | 'refund',
           questionnaire,
           (chunk: string) => {
             accumulatedHtml += chunk
@@ -93,26 +105,31 @@ export async function POST(req: NextRequest) {
           }
         )
 
-        // ── 5. Save to Supabase ─────────────────────────────
-        const nextVersion = (existing?.version ?? 0) + 1
+        // ── 6. Save completed policy ────────────────────────
+        const crypto = await import('crypto')
+        const contentHash = crypto.createHash('sha256').update(accumulatedHtml).digest('hex').slice(0, 16)
 
-        const insertData: PolicyInsert = {
-          user_id:      userId,
-          product_name: productName,
-          policy_type:  policyType,
-          content_html: accumulatedHtml,
-          version:      nextVersion,
-          tokens_used:  result.tokens_input + result.tokens_output,
-          cost_usd:     result.cost_usd,
-        }
+        await savePolicyContent(policyId, {
+          content_html:            accumulatedHtml,
+          content_markdown:        undefined,
+          content_hash:            contentHash,
+          status:                  'active',
+          word_count:              accumulatedHtml.split(/\s+/).length,
+          generation_tokens_used:  result.tokens_input + result.tokens_output,
+          generation_cost_usd:     result.cost_usd,
+          jurisdiction_codes:      result.jurisdictions,
+          clauses_used:            result.clauses_activated,
+          prompt_version:          '1.0',
+          generated_at:            new Date().toISOString(),
+          published_at:            new Date().toISOString(),
+        })
 
-        await supabase.from('policies').insert(insertData)
-
-        // ── 6. Done event ───────────────────────────────────
+        // ── 7. Done event ───────────────────────────────────
         controller.enqueue(
           encoder.encode(
             `data: ${JSON.stringify({
               done:              true,
+              policy_id:         policyId,
               cost_usd:          result.cost_usd,
               tokens_input:      result.tokens_input,
               tokens_output:     result.tokens_output,
@@ -124,6 +141,7 @@ export async function POST(req: NextRequest) {
         )
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Generation failed'
+        await markPolicyError(policyId, message).catch(() => {})
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ error: message })}\n\n`)
         )
