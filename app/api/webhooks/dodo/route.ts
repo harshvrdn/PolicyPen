@@ -4,12 +4,9 @@
  * Verifies Dodo Payments webhook signature and handles subscription lifecycle
  * events to keep public.users in sync.
  *
- * Dodo follows the Standard Webhooks spec (https://standardwebhooks.com/):
- *   - Headers: webhook-id, webhook-timestamp, webhook-signature
- *   - Signed message: "<webhook-id>.<webhook-timestamp>.<raw-body>"
- *   - Signature: HMAC-SHA256 of the signed message, base64-encoded
- *   - Header format: "v1,<base64-signature>" (strip "v1," prefix before comparing)
- *   - Secret: base64-encoded in the dashboard; decode before use
+ * Signature scheme:
+ *   Header: webhook-signature: v1,<hex-hmac-sha256>
+ *   Strip "v1," prefix, compute HMAC-SHA256(rawBody) as hex, compare with timingSafeEqual.
  *
  * Env required:
  *   DODO_PAYMENTS_WEBHOOK_KEY   — signing secret from Dodo Dashboard → Developer → Webhooks
@@ -18,7 +15,7 @@
  *   DODO_PRICE_ID_STUDIO        — Dodo product_id for the Studio plan ($59)
  */
 
-import { headers } from "next/headers"
+import crypto from "crypto"
 import { NextResponse } from "next/server"
 import { createServiceClient } from "@/lib/supabase/client"
 
@@ -42,86 +39,57 @@ function getPlanFromProductId(productId: string): PlanConfig | null {
 }
 
 // ─── Signature verification ────────────────────────────────────────────────
-// Standard Webhooks spec: https://standardwebhooks.com/
-//
-// 1. Signed message = "<webhook-id>.<webhook-timestamp>.<raw-body>"
-// 2. Secret is base64-encoded in Dodo dashboard — decode before use
-// 3. Compute HMAC-SHA256 of signed message using decoded secret
-// 4. Base64-encode result and compare to signature (after stripping "v1," prefix)
 
-async function verifySignature(
-  body: string,
-  webhookId: string,
-  webhookTimestamp: string,
-  sigHeader: string
-): Promise<boolean> {
+function verifySignature(rawBody: string, sigHeader: string): boolean {
   const secret = process.env.DODO_PAYMENTS_WEBHOOK_KEY
   if (!secret) {
     console.error("[dodo-webhook] DODO_PAYMENTS_WEBHOOK_KEY is not set")
     return false
   }
 
-  // Dodo sends: "v1,<base64-signature>" — strip the prefix
-  const signatureB64 = sigHeader.replace(/^v1,/, "")
-  if (!signatureB64) {
-    console.error("[dodo-webhook] Unexpected signature header format:", sigHeader)
+  // Header format: "v1,<hex-hmac-sha256>" — strip the prefix
+  const receivedSignature = sigHeader.replace("v1,", "").trim()
+  if (!receivedSignature) {
+    console.error("[dodo-webhook] Signature header is empty after stripping prefix")
     return false
   }
 
-  // Standard Webhooks signed message
-  const signedMessage = `${webhookId}.${webhookTimestamp}.${body}`
+  const expectedSignature = crypto
+    .createHmac("sha256", secret)
+    .update(rawBody, "utf8")
+    .digest("hex")
 
-  // Secret is base64-encoded in the Dodo dashboard
-  const secretBytes = Uint8Array.from(atob(secret), (c) => c.charCodeAt(0))
+  const sigBuffer      = Buffer.from(receivedSignature, "hex")
+  const expectedBuffer = Buffer.from(expectedSignature, "hex")
 
-  const key = await crypto.subtle.importKey(
-    "raw",
-    secretBytes,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  )
+  if (sigBuffer.length === 0 || sigBuffer.length !== expectedBuffer.length) {
+    return false
+  }
 
-  const signatureBytes = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(signedMessage)
-  )
-
-  const computedB64 = btoa(String.fromCharCode(...new Uint8Array(signatureBytes)))
-
-  return computedB64 === signatureB64
+  return crypto.timingSafeEqual(sigBuffer, expectedBuffer)
 }
 
 // ─── Route handler ─────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
-  const body = await request.text()
-  const headerPayload = await headers()
+  // Read body once — do NOT call request.json()
+  const rawBody = await request.text()
 
-  // Standard Webhooks headers
-  const webhookId        = headerPayload.get("webhook-id")
-  const webhookTimestamp = headerPayload.get("webhook-timestamp")
-  const webhookSig       = headerPayload.get("webhook-signature")
+  const sigHeader = request.headers.get("webhook-signature") ?? ""
 
-  if (!webhookId || !webhookTimestamp || !webhookSig) {
-    console.error("[dodo-webhook] Missing required webhook headers", {
-      "webhook-id": webhookId,
-      "webhook-timestamp": webhookTimestamp,
-      "webhook-signature": webhookSig,
-    })
-    return NextResponse.json({ error: "Missing webhook headers" }, { status: 400 })
+  if (!sigHeader) {
+    console.error("[dodo-webhook] Missing webhook-signature header")
+    return NextResponse.json({ error: "Missing webhook signature" }, { status: 400 })
   }
 
-  const isValid = await verifySignature(body, webhookId, webhookTimestamp, webhookSig)
-  if (!isValid) {
+  if (!verifySignature(rawBody, sigHeader)) {
     console.error("[dodo-webhook] Signature verification failed")
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
   }
 
   let event: { type: string; data: Record<string, unknown> }
   try {
-    event = JSON.parse(body)
+    event = JSON.parse(rawBody)
   } catch {
     console.error("[dodo-webhook] Failed to parse JSON body")
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
@@ -135,15 +103,9 @@ export async function POST(request: Request) {
 
   switch (event.type) {
     case "payment.succeeded": {
-      /*
-       * Expected payload shape:
-       *   event.data.customer_id       — Dodo customer ID
-       *   event.data.subscription_id   — Dodo subscription ID
-       *   event.data.product_id        — Dodo product/price ID (matched to plan tier)
-       */
-      const customerId    = event.data.customer_id as string | undefined
+      const customerId     = event.data.customer_id as string | undefined
       const subscriptionId = event.data.subscription_id as string | undefined
-      const productId     = event.data.product_id as string | undefined
+      const productId      = event.data.product_id as string | undefined
 
       if (!customerId || !productId) {
         console.error("[dodo-webhook] payment.succeeded: missing customer_id or product_id", event.data)
@@ -178,12 +140,6 @@ export async function POST(request: Request) {
     }
 
     case "subscription.active": {
-      /*
-       * Expected payload shape:
-       *   event.data.customer_id       — Dodo customer ID
-       *   event.data.subscription_id   — Dodo subscription ID
-       *   event.data.product_id        — Dodo product/price ID
-       */
       const customerId     = event.data.customer_id as string | undefined
       const subscriptionId = event.data.subscription_id as string | undefined
       const productId      = event.data.product_id as string | undefined
@@ -221,13 +177,6 @@ export async function POST(request: Request) {
     }
 
     case "subscription.cancelled": {
-      /*
-       * Expected payload shape:
-       *   event.data.subscription_id   — Dodo subscription ID
-       *
-       * Plan is NOT downgraded immediately — user keeps access until plan_expires_at.
-       * A separate cleanup job (or next login check) should downgrade after expiry.
-       */
       const subscriptionId = event.data.subscription_id as string | undefined
 
       if (!subscriptionId) {
@@ -253,12 +202,6 @@ export async function POST(request: Request) {
     }
 
     case "subscription.renewed": {
-      /*
-       * Expected payload shape:
-       *   event.data.subscription_id   — Dodo subscription ID
-       *
-       * Re-activates the subscription and resets monthly token usage.
-       */
       const subscriptionId = event.data.subscription_id as string | undefined
 
       if (!subscriptionId) {
@@ -290,7 +233,6 @@ export async function POST(request: Request) {
     }
 
     case "payment.failed": {
-      // Log only — no plan change on payment failure (Dodo will retry)
       const customerId = event.data.customer_id as string | undefined
       console.warn(`[dodo-webhook] payment.failed: customer ${customerId ?? "unknown"}`)
       break
