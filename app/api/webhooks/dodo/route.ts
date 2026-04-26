@@ -1,12 +1,10 @@
 /**
  * POST /api/webhooks/dodo
  *
- * Verifies Dodo Payments webhook signature and handles subscription lifecycle
- * events to keep public.users in sync.
+ * Verifies Dodo Payments webhook signature via Svix and handles subscription
+ * lifecycle events to keep public.users in sync.
  *
- * Signature scheme:
- *   Header: webhook-signature: v1,<hex-hmac-sha256>
- *   Strip "v1," prefix, compute HMAC-SHA256(rawBody) as hex, compare with timingSafeEqual.
+ * Dodo uses Svix headers: svix-id, svix-timestamp, svix-signature
  *
  * Env required:
  *   DODO_PAYMENTS_WEBHOOK_KEY   — signing secret from Dodo Dashboard → Developer → Webhooks
@@ -15,7 +13,7 @@
  *   DODO_PRICE_ID_STUDIO        — Dodo product_id for the Studio plan ($59)
  */
 
-import crypto from "crypto"
+import { Webhook } from "svix"
 import { NextResponse } from "next/server"
 import { createServiceClient } from "@/lib/supabase/client"
 
@@ -38,61 +36,32 @@ function getPlanFromProductId(productId: string): PlanConfig | null {
   return null
 }
 
-// ─── Signature verification ────────────────────────────────────────────────
-
-function verifySignature(rawBody: string, sigHeader: string): boolean {
-  const secret = process.env.DODO_PAYMENTS_WEBHOOK_KEY
-  if (!secret) {
-    console.error("[dodo-webhook] DODO_PAYMENTS_WEBHOOK_KEY is not set")
-    return false
-  }
-
-  // Header format: "v1,<hex-hmac-sha256>" — strip the prefix
-  const receivedSignature = sigHeader.replace("v1,", "").trim()
-  if (!receivedSignature) {
-    console.error("[dodo-webhook] Signature header is empty after stripping prefix")
-    return false
-  }
-
-  const expectedSignature = crypto
-    .createHmac("sha256", secret)
-    .update(rawBody, "utf8")
-    .digest("hex")
-
-  const sigBuffer      = Buffer.from(receivedSignature, "hex")
-  const expectedBuffer = Buffer.from(expectedSignature, "hex")
-
-  if (sigBuffer.length === 0 || sigBuffer.length !== expectedBuffer.length) {
-    return false
-  }
-
-  return crypto.timingSafeEqual(sigBuffer, expectedBuffer)
-}
-
 // ─── Route handler ─────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
-  // Read body once — do NOT call request.json()
   const rawBody = await request.text()
 
-  const sigHeader = request.headers.get("webhook-signature") ?? ""
+  const svixId        = request.headers.get("svix-id")
+  const svixTimestamp = request.headers.get("svix-timestamp")
+  const svixSignature = request.headers.get("svix-signature")
 
-  if (!sigHeader) {
-    console.error("[dodo-webhook] Missing webhook-signature header")
-    return NextResponse.json({ error: "Missing webhook signature" }, { status: 400 })
+  if (!svixId || !svixTimestamp || !svixSignature) {
+    console.error("[dodo-webhook] Missing svix headers")
+    return NextResponse.json({ error: "Missing svix headers" }, { status: 400 })
   }
 
-  if (!verifySignature(rawBody, sigHeader)) {
-    console.error("[dodo-webhook] Signature verification failed")
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
-  }
+  const wh = new Webhook(process.env.DODO_PAYMENTS_WEBHOOK_KEY!)
 
   let event: { type: string; data: Record<string, unknown> }
   try {
-    event = JSON.parse(rawBody)
-  } catch {
-    console.error("[dodo-webhook] Failed to parse JSON body")
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
+    event = wh.verify(rawBody, {
+      "svix-id":        svixId,
+      "svix-timestamp": svixTimestamp,
+      "svix-signature": svixSignature,
+    }) as { type: string; data: Record<string, unknown> }
+  } catch (err) {
+    console.error("[dodo-webhook] Verification failed:", err)
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 })
   }
 
   console.log(`[dodo-webhook] Received event: ${event.type}`)
@@ -239,7 +208,6 @@ export async function POST(request: Request) {
     }
 
     default:
-      // Return 200 so Dodo stops retrying unrecognised event types
       console.log(`[dodo-webhook] Unhandled event type: ${event.type}`)
   }
 
