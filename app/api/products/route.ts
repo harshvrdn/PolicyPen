@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server"
+import { auth, currentUser } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import { getCurrentUser, createProduct, generateProductSlug, completeOnboarding } from "@/lib/db/dal"
 import { createServiceClient } from "@/lib/supabase/client"
@@ -21,9 +21,45 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const user = await getCurrentUser(userId)
+    let user = await getCurrentUser(userId)
+
+    // Safety net: Clerk webhook may not have fired yet (common during local dev /
+    // initial setup). Auto-create a minimal user record so product creation works.
     if (!user) {
-      return NextResponse.json({ error: "User not found. Try signing out and back in." }, { status: 404 })
+      console.warn(`[api/products] User ${userId} not in DB — attempting auto-create`)
+      const clerkUser = await currentUser()
+      if (!clerkUser) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
+
+      const email = clerkUser.primaryEmailAddress?.emailAddress ?? ""
+      const fullName =
+        [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || null
+
+      const svc = createServiceClient()
+      const { error: insertErr } = await svc.from("users").insert({
+        clerk_id: userId,
+        email,
+        full_name: fullName,
+        plan: "free",
+      })
+
+      // 23505 = unique violation (already exists — race condition). Either way, re-fetch.
+      if (insertErr && insertErr.code !== "23505") {
+        console.error("[api/products] Auto-create user failed:", insertErr.message)
+        return NextResponse.json(
+          { error: "Could not create user profile. Please sign out and back in." },
+          { status: 500 }
+        )
+      }
+
+      user = await getCurrentUser(userId)
+      if (!user) {
+        return NextResponse.json(
+          { error: "User profile not found. Please sign out and back in." },
+          { status: 404 }
+        )
+      }
     }
 
     if (user.max_products != null && user.products_count >= user.max_products) {

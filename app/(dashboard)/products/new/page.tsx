@@ -207,16 +207,32 @@ export default function NewProductPage() {
         }),
       })
 
-      const data = await res.json()
+      // Parse response body — handle non-JSON responses gracefully
+      let data: { error?: string; product?: { slug: string } } = {}
+      try {
+        data = await res.json()
+      } catch {
+        const text = await res.text().catch(() => "")
+        const msg = `Server returned ${res.status} — ${text.slice(0, 120) || "no response body"}`
+        console.error("[NewProduct] API parse error:", msg)
+        setError(msg)
+        setLoading(false)
+        return
+      }
+
       if (!res.ok) {
-        setError(data.error || "Failed to create product.")
+        const errMsg = data.error || `Request failed with status ${res.status}`
+        console.error("[NewProduct] API error:", errMsg)
+        setError(errMsg)
         setLoading(false)
         return
       }
 
       router.push("/dashboard")
-    } catch {
-      setError("Something went wrong. Please try again.")
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : "Something went wrong. Please try again."
+      console.error("[NewProduct] Unexpected error:", e)
+      setError(errMsg)
       setLoading(false)
     }
   }
