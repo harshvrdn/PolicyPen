@@ -5,6 +5,8 @@ import type { PolicyType, PolicyStatus, ProductPolicyStatus } from "@/types/supa
 import CopyButton from "@/components/CopyButton"
 import CustomDomainSection from "./CustomDomainSection"
 import GenerateButton from "./GenerateButton"
+import DeletePolicyButton from "@/components/DeletePolicyButton"
+import DeleteProductButton from "@/components/DeleteProductButton"
 
 const POLICY_TYPES: { type: PolicyType; label: string }[] = [
   { type: "privacy_policy",   label: "Privacy Policy" },
@@ -57,7 +59,10 @@ export default async function ProductPage({
             <span className="text-muted">Added {formatDate(product.created_at)}</span>
           </div>
         </div>
-        <Link href="/products" className="btn btn-secondary btn-sm">← Products</Link>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <DeleteProductButton productId={product.id} productName={product.name} />
+          <Link href="/products" className="btn btn-secondary btn-sm">← Products</Link>
+        </div>
       </div>
 
       <div className="section">
@@ -117,6 +122,12 @@ export default async function ProductPage({
                     >
                       Export
                     </a>
+                  )}
+                  {hasPolicy && status.policy_id && (
+                    <DeletePolicyButton
+                      policyId={status.policy_id}
+                      policyLabel={label}
+                    />
                   )}
                 </div>
               </div>
