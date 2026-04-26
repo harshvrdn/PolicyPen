@@ -1,4 +1,5 @@
 import { auth, currentUser } from "@clerk/nextjs/server"
+import { redirect } from "next/navigation"
 import Link from "next/link"
 import { getUserDashboard, getUserProducts, getLawUpdates } from "@/lib/db/dal"
 import type { LawUpdateSeverity, UserDashboard } from "@/types/supabase"
@@ -76,6 +77,15 @@ export default async function DashboardPage() {
   ])
 
   const firstName = clerkUser?.firstName || "there"
+
+  // New users with no products go straight to setup
+  if (
+    dashboard &&
+    (dashboard.products_count ?? 0) === 0 &&
+    (dashboard.policies_generated_total ?? 0) === 0
+  ) {
+    redirect("/products/new")
+  }
 
   const isFree = (dashboard?.plan ?? "free") === "free"
 

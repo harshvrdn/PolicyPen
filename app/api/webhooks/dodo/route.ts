@@ -76,9 +76,11 @@ export async function POST(request: Request) {
       const customerId     = event.data.customer_id as string | undefined
       const subscriptionId = event.data.subscription_id as string | undefined
       const productId      = event.data.product_id as string | undefined
+      const metadata       = event.data.metadata as Record<string, string> | undefined
+      const clerkUserId    = metadata?.clerk_user_id
 
-      if (!customerId || !productId) {
-        console.error("[dodo-webhook] payment.succeeded: missing customer_id or product_id", event.data)
+      if (!productId) {
+        console.error("[dodo-webhook] payment.succeeded: missing product_id", event.data)
         break
       }
 
@@ -88,29 +90,36 @@ export async function POST(request: Request) {
         break
       }
 
-      const { error } = await supabase
-        .from("users")
-        .update({
-          plan: plan.tier,
-          subscription_status: "active",
-          dodo_customer_id: customerId,
-          ...(subscriptionId ? { dodo_subscription_id: subscriptionId } : {}),
-          max_products: plan.maxProducts,
-          plan_expires_at: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("dodo_customer_id", customerId)
+      const updates = {
+        plan: plan.tier,
+        subscription_status: "active",
+        ...(customerId ? { dodo_customer_id: customerId } : {}),
+        ...(subscriptionId ? { dodo_subscription_id: subscriptionId } : {}),
+        max_products: plan.maxProducts,
+        plan_expires_at: null,
+        updated_at: new Date().toISOString(),
+      }
+
+      // Prefer matching by clerk_id from checkout metadata (works for new customers
+      // who don't have dodo_customer_id set yet); fall back to dodo_customer_id.
+      const query = clerkUserId
+        ? supabase.from("users").update(updates).eq("clerk_id", clerkUserId)
+        : supabase.from("users").update(updates).eq("dodo_customer_id", customerId!)
+
+      const { error } = await query
 
       if (error) {
         console.error("[dodo-webhook] payment.succeeded: DB update failed", error)
       } else {
-        console.log(`[dodo-webhook] payment.succeeded: customer ${customerId} → plan ${plan.tier}`)
+        console.log(`[dodo-webhook] payment.succeeded: ${clerkUserId ?? customerId} → plan ${plan.tier}`)
 
-        // Send payment confirmation email — look up user by dodo_customer_id
+        // Send payment confirmation email
+        const lookupCol = clerkUserId ? "clerk_id" : "dodo_customer_id"
+        const lookupVal = clerkUserId ?? customerId!
         const { data: userData } = await supabase
           .from("users")
           .select("email, full_name")
-          .eq("dodo_customer_id", customerId)
+          .eq(lookupCol, lookupVal)
           .single()
 
         if (userData?.email) {
@@ -125,9 +134,11 @@ export async function POST(request: Request) {
       const customerId     = event.data.customer_id as string | undefined
       const subscriptionId = event.data.subscription_id as string | undefined
       const productId      = event.data.product_id as string | undefined
+      const metadata       = event.data.metadata as Record<string, string> | undefined
+      const clerkUserId    = metadata?.clerk_user_id
 
-      if (!customerId || !productId) {
-        console.error("[dodo-webhook] subscription.active: missing customer_id or product_id", event.data)
+      if (!productId) {
+        console.error("[dodo-webhook] subscription.active: missing product_id", event.data)
         break
       }
 
@@ -137,23 +148,26 @@ export async function POST(request: Request) {
         break
       }
 
-      const { error } = await supabase
-        .from("users")
-        .update({
-          plan: plan.tier,
-          subscription_status: "active",
-          dodo_customer_id: customerId,
-          ...(subscriptionId ? { dodo_subscription_id: subscriptionId } : {}),
-          max_products: plan.maxProducts,
-          plan_expires_at: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("dodo_customer_id", customerId)
+      const updates = {
+        plan: plan.tier,
+        subscription_status: "active",
+        ...(customerId ? { dodo_customer_id: customerId } : {}),
+        ...(subscriptionId ? { dodo_subscription_id: subscriptionId } : {}),
+        max_products: plan.maxProducts,
+        plan_expires_at: null,
+        updated_at: new Date().toISOString(),
+      }
+
+      const query = clerkUserId
+        ? supabase.from("users").update(updates).eq("clerk_id", clerkUserId)
+        : supabase.from("users").update(updates).eq("dodo_customer_id", customerId!)
+
+      const { error } = await query
 
       if (error) {
         console.error("[dodo-webhook] subscription.active: DB update failed", error)
       } else {
-        console.log(`[dodo-webhook] subscription.active: customer ${customerId} → plan ${plan.tier}`)
+        console.log(`[dodo-webhook] subscription.active: ${clerkUserId ?? customerId} → plan ${plan.tier}`)
       }
       break
     }

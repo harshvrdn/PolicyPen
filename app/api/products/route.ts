@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
-import { getCurrentUser, createProduct, generateProductSlug } from "@/lib/db/dal"
+import { getCurrentUser, createProduct, generateProductSlug, completeOnboarding } from "@/lib/db/dal"
 import { createServiceClient } from "@/lib/supabase/client"
 
 function slugify(name: string): string {
@@ -75,6 +75,11 @@ export async function POST(request: Request) {
       .from("users")
       .update({ products_count: user.products_count + 1 })
       .eq("clerk_id", userId)
+
+    // Mark onboarding complete on first product creation
+    if (!user.onboarding_completed) {
+      await completeOnboarding(userId).catch(() => {})
+    }
 
     return NextResponse.json({
       product: { id: product.id, slug: product.slug, name: product.name },
