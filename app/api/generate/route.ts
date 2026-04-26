@@ -10,6 +10,7 @@ import { generatePolicy } from '@/prompts/generate'
 import {
   getCurrentUser,
   canUserGeneratePolicy,
+  countActiveGenerations,
   createPolicyRecord,
   savePolicyContent,
   markPolicyError,
@@ -67,6 +68,15 @@ export async function POST(req: NextRequest) {
   const canGenerate = await canUserGeneratePolicy(dbUser.id, productId).catch(() => ({ allowed: false, reason: 'Plan check failed' }))
   if (!canGenerate.allowed) {
     return Response.json({ error: canGenerate.reason ?? 'Plan limit reached. Upgrade to generate more policies.' }, { status: 403 })
+  }
+
+  // ── Rate limit: max 3 concurrent generations per user ─────
+  const activeCount = await countActiveGenerations(dbUser.id)
+  if (activeCount >= 3) {
+    return Response.json(
+      { error: 'You already have active generations running. Please wait for them to complete.' },
+      { status: 429, headers: { 'Retry-After': '30' } }
+    )
   }
 
   // ── 4. Create pending policy record ───────────────────────

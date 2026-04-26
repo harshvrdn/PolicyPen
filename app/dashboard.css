@@ -663,6 +663,57 @@
   top: 1px;
 }
 
+/* ─── Upgrade CTA ─────────────────────────────────────────────────────────── */
+.upgrade-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  background: var(--accent-light);
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
+  margin-bottom: 24px;
+}
+
+.upgrade-cta-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.upgrade-cta-text strong {
+  font-size: 14px;
+  color: var(--accent);
+}
+
+.upgrade-cta-text span {
+  font-size: 13px;
+  color: var(--ink2);
+}
+
+/* ─── Usage meter ─────────────────────────────────────────────────────────── */
+.usage-bar-track {
+  height: 6px;
+  background: var(--paper3);
+  border-radius: 100px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.usage-bar-fill {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 0.4s ease;
+}
+
+.usage-bar-numbers {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 /* ─── Misc ────────────────────────────────────────────────────────────────── */
 .divider {
   border: none;

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import type { PolicyType } from "@/types/supabase"
+import { useToast } from "@/components/Toast"
 
 interface Props {
   productId: string
@@ -27,12 +28,11 @@ export default function GenerateButton({
   hasExisting,
 }: Props) {
   const router = useRouter()
-  const [state, setState] = useState<"idle" | "generating" | "done" | "error">("idle")
-  const [error, setError] = useState("")
+  const { toast } = useToast()
+  const [state, setState] = useState<"idle" | "generating" | "error">("idle")
 
   async function handleGenerate() {
     setState("generating")
-    setError("")
 
     try {
       const res = await fetch("/api/generate", {
@@ -65,7 +65,8 @@ export default function GenerateButton({
             const parsed = JSON.parse(line.slice(6))
             if (parsed.error) throw new Error(parsed.error)
             if (parsed.done) {
-              setState("done")
+              setState("idle")
+              toast("Policy generated successfully.", "success")
               router.refresh()
               return
             }
@@ -77,11 +78,12 @@ export default function GenerateButton({
         }
       }
 
-      setState("done")
+      setState("idle")
       router.refresh()
     } catch (e) {
       setState("error")
-      setError(e instanceof Error ? e.message : "Generation failed")
+      const message = e instanceof Error ? e.message : "Generation failed"
+      toast(message, "error")
     }
   }
 
@@ -95,20 +97,9 @@ export default function GenerateButton({
     )
   }
 
-  if (state === "error") {
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <button className="btn btn-primary btn-sm" onClick={handleGenerate}>
-          Retry
-        </button>
-        <span style={{ fontSize: 11, color: "var(--error, #f87171)" }}>{error}</span>
-      </div>
-    )
-  }
-
   return (
     <button className="btn btn-primary btn-sm" onClick={handleGenerate}>
-      {hasExisting ? `Regenerate` : `Generate`}
+      {state === "error" ? "Retry" : hasExisting ? "Regenerate" : "Generate"}
     </button>
   )
 }

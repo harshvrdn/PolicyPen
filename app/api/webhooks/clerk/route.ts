@@ -22,6 +22,7 @@ import { headers } from "next/headers"
 import { NextResponse } from "next/server"
 import { Webhook } from "svix"
 import { createServiceClient } from "@/lib/supabase/client"
+import { sendWelcomeEmail } from "@/lib/email"
 
 // Clerk webhook event types (minimal — only what we need)
 interface ClerkEmailAddress {
@@ -143,6 +144,9 @@ export async function POST(request: Request) {
         }
 
         console.log(`[clerk-webhook] user.created: ${data.id} → ${email}`)
+
+        // Fire-and-forget welcome email
+        sendWelcomeEmail(email, data.first_name).catch(() => {})
         break
       }
 

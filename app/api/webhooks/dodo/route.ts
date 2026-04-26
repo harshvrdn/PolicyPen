@@ -16,6 +16,7 @@
 import { Webhook } from "svix"
 import { NextResponse } from "next/server"
 import { createServiceClient } from "@/lib/supabase/client"
+import { sendPaymentConfirmationEmail } from "@/lib/email"
 
 // ─── Plan config ───────────────────────────────────────────────────────────
 
@@ -104,6 +105,18 @@ export async function POST(request: Request) {
         console.error("[dodo-webhook] payment.succeeded: DB update failed", error)
       } else {
         console.log(`[dodo-webhook] payment.succeeded: customer ${customerId} → plan ${plan.tier}`)
+
+        // Send payment confirmation email — look up user by dodo_customer_id
+        const { data: userData } = await supabase
+          .from("users")
+          .select("email, full_name")
+          .eq("dodo_customer_id", customerId)
+          .single()
+
+        if (userData?.email) {
+          const firstName = userData.full_name?.split(" ")[0] ?? null
+          sendPaymentConfirmationEmail(userData.email, firstName, plan.tier).catch(() => {})
+        }
       }
       break
     }
