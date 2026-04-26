@@ -43,9 +43,10 @@ export async function POST(request: Request) {
       company_legal_name,
       company_address,
       contact_email,
-    } = body as Record<string, string>
+      questionnaire_data,
+    } = body as Record<string, unknown>
 
-    if (!name?.trim()) {
+    if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json({ error: "Product name is required." }, { status: 400 })
     }
 
@@ -57,16 +58,19 @@ export async function POST(request: Request) {
     }
 
     const product = await createProduct({
-      name: name.trim(),
+      name: (name as string).trim(),
       slug,
       user_id: user.id,
-      website_url: website_url?.trim() || null,
-      description: description?.trim() || null,
-      business_type: business_type || null,
-      primary_jurisdiction: primary_jurisdiction || "US",
-      company_legal_name: company_legal_name?.trim() || null,
-      company_address: company_address?.trim() || null,
-      contact_email: contact_email?.trim() || null,
+      website_url: (website_url as string)?.trim() || null,
+      description: (description as string)?.trim() || null,
+      business_type: (business_type as string) || null,
+      primary_jurisdiction: (primary_jurisdiction as string) || "US",
+      company_legal_name: (company_legal_name as string)?.trim() || null,
+      company_address: (company_address as string)?.trim() || null,
+      contact_email: (contact_email as string)?.trim() || null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      questionnaire_data: (questionnaire_data as any) ?? null,
+      questionnaire_completed_at: questionnaire_data ? new Date().toISOString() : null,
       is_active: true,
     })
 

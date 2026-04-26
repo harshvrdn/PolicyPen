@@ -663,6 +663,59 @@
   top: 1px;
 }
 
+/* ─── Wizard footer (floating step nav) ──────────────────────────────────── */
+.wizard-footer {
+  position: fixed;
+  bottom: 0;
+  left: 220px; /* sidebar width */
+  right: 0;
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+  padding: 16px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  z-index: 20;
+}
+
+.wizard-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wizard-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--rule2);
+  transition: background 0.2s, width 0.2s, border-radius 0.2s;
+  flex-shrink: 0;
+}
+
+.wizard-step-dot.active {
+  background: var(--accent);
+  width: 24px;
+  border-radius: 4px;
+}
+
+.wizard-step-dot.done {
+  background: var(--accent-border);
+}
+
+.wizard-step-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
+.wizard-page {
+  padding: 36px 40px 100px; /* bottom padding for fixed footer */
+  max-width: 640px;
+}
+
 /* ─── Upgrade CTA ─────────────────────────────────────────────────────────── */
 .upgrade-cta {
   display: flex;
