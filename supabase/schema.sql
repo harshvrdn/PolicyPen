@@ -1,7 +1,7 @@
 -- ============================================================
 -- PolicyPen — Supabase Schema (Full Production Schema)
 -- Project: kbgzqchlmstzetdapujj | Region: ap-south-1
--- Last updated: 2026-04-16
+-- Last updated: 2026-04-26
 --
 -- DO NOT run this manually — migrations are applied via
 -- Supabase MCP. This file is the canonical reference.
@@ -27,8 +27,8 @@ CREATE TABLE public.users (
   full_name TEXT,
   avatar_url TEXT,
   plan plan_tier NOT NULL DEFAULT 'free',
-  stripe_customer_id TEXT UNIQUE,
-  stripe_subscription_id TEXT UNIQUE,
+  dodo_customer_id TEXT UNIQUE,
+  dodo_subscription_id TEXT UNIQUE,
   subscription_status TEXT DEFAULT 'inactive',
   trial_ends_at TIMESTAMPTZ,
   plan_expires_at TIMESTAMPTZ,
@@ -154,3 +154,130 @@ CREATE TABLE public.policy_acknowledgements (
   acknowledged_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- ============================================================
+-- Row Level Security
+-- ============================================================
+
+-- Enable RLS on all tables
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.policies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.law_updates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.policy_acknowledgements ENABLE ROW LEVEL SECURITY;
+
+-- ─── users ───────────────────────────────────────────────────
+-- Users can only read and update their own row (matched via clerk_id = auth.uid())
+CREATE POLICY "users_select_own" ON public.users
+  FOR SELECT USING (clerk_id = auth.uid()::text);
+
+CREATE POLICY "users_update_own" ON public.users
+  FOR UPDATE USING (clerk_id = auth.uid()::text)
+  WITH CHECK (clerk_id = auth.uid()::text);
+
+-- Service role (Clerk webhook, billing) bypasses RLS — no INSERT/DELETE policy needed for anon/authenticated
+
+-- ─── products ────────────────────────────────────────────────
+-- Users can CRUD only their own products (joined via users.clerk_id)
+CREATE POLICY "products_select_own" ON public.products
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = products.user_id
+        AND u.clerk_id = auth.uid()::text
+    )
+  );
+
+CREATE POLICY "products_insert_own" ON public.products
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = products.user_id
+        AND u.clerk_id = auth.uid()::text
+    )
+  );
+
+CREATE POLICY "products_update_own" ON public.products
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = products.user_id
+        AND u.clerk_id = auth.uid()::text
+    )
+  ) WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = products.user_id
+        AND u.clerk_id = auth.uid()::text
+    )
+  );
+
+CREATE POLICY "products_delete_own" ON public.products
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = products.user_id
+        AND u.clerk_id = auth.uid()::text
+    )
+  );
+
+-- ─── policies ────────────────────────────────────────────────
+-- Users can CRUD only their own generated policies (via user_id)
+CREATE POLICY "policies_select_own" ON public.policies
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = policies.user_id
+        AND u.clerk_id = auth.uid()::text
+    )
+  );
+
+CREATE POLICY "policies_insert_own" ON public.policies
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = policies.user_id
+        AND u.clerk_id = auth.uid()::text
+    )
+  );
+
+CREATE POLICY "policies_update_own" ON public.policies
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = policies.user_id
+        AND u.clerk_id = auth.uid()::text
+    )
+  ) WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = policies.user_id
+        AND u.clerk_id = auth.uid()::text
+    )
+  );
+
+CREATE POLICY "policies_delete_own" ON public.policies
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = policies.user_id
+        AND u.clerk_id = auth.uid()::text
+    )
+  );
+
+-- ─── law_updates ─────────────────────────────────────────────
+-- Authenticated users can SELECT only — writes are service-role only
+CREATE POLICY "law_updates_select_authenticated" ON public.law_updates
+  FOR SELECT TO authenticated USING (true);
+
+-- ─── policy_acknowledgements ─────────────────────────────────
+-- Users can only read acknowledgements for products they own
+CREATE POLICY "policy_acknowledgements_select_own" ON public.policy_acknowledgements
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.products p
+      JOIN public.users u ON u.id = p.user_id
+      WHERE p.id = policy_acknowledgements.product_id
+        AND u.clerk_id = auth.uid()::text
+    )
+  );

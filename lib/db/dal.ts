@@ -60,8 +60,8 @@ export async function updateUserPlan(
   clerkId: string,
   updates: {
     plan: User["plan"]
-    stripe_customer_id?: string
-    stripe_subscription_id?: string
+    dodo_customer_id?: string
+    dodo_subscription_id?: string
     subscription_status?: string
     plan_expires_at?: string | null
   }
