@@ -602,3 +602,29 @@ export async function countActiveGenerations(userId: string): Promise<number> {
   if (error) return 0
   return count ?? 0
 }
+
+// ═════════════════════════════════════════════════════════════
+// DELETE / DEACTIVATE
+// ═════════════════════════════════════════════════════════════
+
+/** Archive a policy (soft-delete: status → archived, is_current_version → false) */
+export async function archivePolicy(policyId: string): Promise<void> {
+  const supabase = await createServerClient()
+  const { error } = await supabase
+    .from("policies")
+    .update({ status: "archived", is_current_version: false, updated_at: new Date().toISOString() })
+    .eq("id", policyId)
+
+  if (error) throw new Error(`[DAL:archivePolicy] ${error.message}`)
+}
+
+/** Deactivate a product (soft-delete: is_active → false) */
+export async function deactivateProduct(productId: string): Promise<void> {
+  const supabase = await createServerClient()
+  const { error } = await supabase
+    .from("products")
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq("id", productId)
+
+  if (error) throw new Error(`[DAL:deactivateProduct] ${error.message}`)
+}

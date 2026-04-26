@@ -1,6 +1,6 @@
-import { auth } from "@clerk/nextjs/server"
+import { auth, currentUser } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
-import { getCurrentUser, createProduct, generateProductSlug } from "@/lib/db/dal"
+import { getCurrentUser, createProduct, generateProductSlug, completeOnboarding } from "@/lib/db/dal"
 import { createServiceClient } from "@/lib/supabase/client"
 
 function slugify(name: string): string {
@@ -21,9 +21,45 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const user = await getCurrentUser(userId)
+    let user = await getCurrentUser(userId)
+
+    // Safety net: Clerk webhook may not have fired yet (common during local dev /
+    // initial setup). Auto-create a minimal user record so product creation works.
     if (!user) {
-      return NextResponse.json({ error: "User not found. Try signing out and back in." }, { status: 404 })
+      console.warn(`[api/products] User ${userId} not in DB — attempting auto-create`)
+      const clerkUser = await currentUser()
+      if (!clerkUser) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
+
+      const email = clerkUser.primaryEmailAddress?.emailAddress ?? ""
+      const fullName =
+        [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || null
+
+      const svc = createServiceClient()
+      const { error: insertErr } = await svc.from("users").insert({
+        clerk_id: userId,
+        email,
+        full_name: fullName,
+        plan: "free",
+      })
+
+      // 23505 = unique violation (already exists — race condition). Either way, re-fetch.
+      if (insertErr && insertErr.code !== "23505") {
+        console.error("[api/products] Auto-create user failed:", insertErr.message)
+        return NextResponse.json(
+          { error: "Could not create user profile. Please sign out and back in." },
+          { status: 500 }
+        )
+      }
+
+      user = await getCurrentUser(userId)
+      if (!user) {
+        return NextResponse.json(
+          { error: "User profile not found. Please sign out and back in." },
+          { status: 404 }
+        )
+      }
     }
 
     if (user.max_products != null && user.products_count >= user.max_products) {
@@ -43,9 +79,10 @@ export async function POST(request: Request) {
       company_legal_name,
       company_address,
       contact_email,
-    } = body as Record<string, string>
+      questionnaire_data,
+    } = body as Record<string, unknown>
 
-    if (!name?.trim()) {
+    if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json({ error: "Product name is required." }, { status: 400 })
     }
 
@@ -57,16 +94,19 @@ export async function POST(request: Request) {
     }
 
     const product = await createProduct({
-      name: name.trim(),
+      name: (name as string).trim(),
       slug,
       user_id: user.id,
-      website_url: website_url?.trim() || null,
-      description: description?.trim() || null,
-      business_type: business_type || null,
-      primary_jurisdiction: primary_jurisdiction || "US",
-      company_legal_name: company_legal_name?.trim() || null,
-      company_address: company_address?.trim() || null,
-      contact_email: contact_email?.trim() || null,
+      website_url: (website_url as string)?.trim() || null,
+      description: (description as string)?.trim() || null,
+      business_type: (business_type as string) || null,
+      primary_jurisdiction: (primary_jurisdiction as string) || "US",
+      company_legal_name: (company_legal_name as string)?.trim() || null,
+      company_address: (company_address as string)?.trim() || null,
+      contact_email: (contact_email as string)?.trim() || null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      questionnaire_data: (questionnaire_data as any) ?? null,
+      questionnaire_completed_at: questionnaire_data ? new Date().toISOString() : null,
       is_active: true,
     })
 
@@ -75,6 +115,11 @@ export async function POST(request: Request) {
       .from("users")
       .update({ products_count: user.products_count + 1 })
       .eq("clerk_id", userId)
+
+    // Mark onboarding complete on first product creation
+    if (!user.onboarding_completed) {
+      await completeOnboarding(userId).catch(() => {})
+    }
 
     return NextResponse.json({
       product: { id: product.id, slug: product.slug, name: product.name },

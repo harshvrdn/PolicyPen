@@ -215,10 +215,30 @@
   margin-bottom: 8px;
 }
 
+/* Print button */
+.print-btn {
+  background: transparent;
+  border: 1px solid var(--rule2);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-family: var(--sans);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.print-btn:hover {
+  color: var(--ink2);
+  border-color: var(--ink2);
+}
+
 /* Print styles */
 @media print {
   .policy-nav,
-  .policy-tabs {
+  .policy-tabs,
+  .print-btn {
     display: none;
   }
 

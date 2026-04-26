@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import type { Metadata } from "next"
 import { getPublicPolicy } from "@/lib/db/dal"
 import type { PolicyType } from "@/types/supabase"
+import PrintButton from "@/components/PrintButton"
 
 export const revalidate = 3600
 
@@ -101,6 +102,7 @@ export default async function PublicPolicyPage({
       <div className="policy-meta">
         <span>Last updated: {formatDate(policy.published_at ?? policy.updated_at)}</span>
         <span>Version {policy.version}</span>
+        <PrintButton />
       </div>
 
       <div
