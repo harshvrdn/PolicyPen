@@ -1,7 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server"
 import Link from "next/link"
 import { getUserDashboard, getUserProducts, getLawUpdates } from "@/lib/db/dal"
-import type { LawUpdateSeverity } from "@/types/supabase"
+import type { LawUpdateSeverity, UserDashboard } from "@/types/supabase"
 
 function greeting(): string {
   const h = new Date().getUTCHours()
@@ -22,6 +22,48 @@ function SeverityBadge({ severity }: { severity: LawUpdateSeverity }) {
   return <span className={`badge severity-${severity}`}>{severity}</span>
 }
 
+function UpgradeCTA() {
+  return (
+    <div className="upgrade-cta">
+      <div className="upgrade-cta-text">
+        <strong>You&rsquo;re on the free plan.</strong>
+        <span>Upgrade to generate unlimited policies, cover more jurisdictions, and unlock PDF exports.</span>
+      </div>
+      <Link href="/settings" className="btn btn-primary btn-sm">
+        Upgrade →
+      </Link>
+    </div>
+  )
+}
+
+function UsageMeter({ dashboard }: { dashboard: UserDashboard }) {
+  const used = dashboard.ai_tokens_used_month ?? 0
+  const FREE_LIMIT = 50_000
+  const pct = Math.min(100, Math.round((used / FREE_LIMIT) * 100))
+  const isNearLimit = pct >= 80
+
+  return (
+    <div className="stat-card">
+      <div className="stat-label" style={{ marginBottom: 10 }}>Token usage this month</div>
+      <div className="usage-bar-track">
+        <div
+          className="usage-bar-fill"
+          style={{
+            width: `${pct}%`,
+            background: isNearLimit ? "#92400e" : "var(--accent)",
+          }}
+        />
+      </div>
+      <div className="usage-bar-numbers">
+        <span style={{ color: isNearLimit ? "#92400e" : undefined }}>
+          {used.toLocaleString()}
+        </span>
+        <span>{FREE_LIMIT.toLocaleString()} tokens</span>
+      </div>
+    </div>
+  )
+}
+
 export default async function DashboardPage() {
   const { userId } = await auth()
   if (!userId) return null
@@ -35,10 +77,14 @@ export default async function DashboardPage() {
 
   const firstName = clerkUser?.firstName || "there"
 
+  const isFree = (dashboard?.plan ?? "free") === "free"
+
   return (
     <div className="page">
       <h1 className="welcome-heading">{greeting()}, {firstName}.</h1>
       <p className="welcome-sub">Here&rsquo;s an overview of your PolicyPen workspace.</p>
+
+      {isFree && <UpgradeCTA />}
 
       <div className="stats-row">
         <div className="stat-card">
@@ -56,6 +102,8 @@ export default async function DashboardPage() {
           <div className="stat-label">Current plan</div>
         </div>
       </div>
+
+      {isFree && dashboard && <UsageMeter dashboard={dashboard} />}
 
       <div className="section">
         <div className="section-title">Your Products</div>

@@ -109,6 +109,15 @@ export default async function ProductPage({
                       View
                     </a>
                   )}
+                  {isActive && status.policy_id && (
+                    <a
+                      href={`/api/export/${status.policy_id}?format=html`}
+                      className="btn btn-secondary btn-sm"
+                      download
+                    >
+                      Export
+                    </a>
+                  )}
                 </div>
               </div>
             )
