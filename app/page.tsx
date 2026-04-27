@@ -26,19 +26,7 @@ export default function LandingPage() {
           <Link href="/demo" className="btn-ghost">See a sample policy</Link>
         </div>
 
-        {/* Faux document preview */}
-        <div className="doc-preview" aria-hidden="true">
-          <div className="doc-line heading"></div>
-          <div className="doc-line"></div>
-          <div className="doc-line"></div>
-          <div className="doc-line"></div>
-          <div className="doc-line"></div>
-          <div className="doc-line heading" style={{ marginTop: "20px" }}></div>
-          <div className="doc-line"></div>
-          <div className="doc-line"></div>
-          <div className="doc-line"></div>
-          <div className="doc-line"></div>
-        </div>
+
       </section>
 
       {/* Social proof */}
