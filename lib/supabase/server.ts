@@ -31,3 +31,6 @@ export async function createSupabaseServerClient() {
     }
   )
 }
+
+// Alias used by DAL and route handlers — same function, familiar name.
+export const createServerClient = createSupabaseServerClient

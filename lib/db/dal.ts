@@ -10,7 +10,8 @@
  *   - All functions throw on error — callers handle try/catch
  */
 
-import { createServerClient, createServiceClient } from "@/lib/supabase/client"
+import { createServerClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/client"
 import type {
   User,
   Product,
