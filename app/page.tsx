@@ -1,6 +1,8 @@
 import Link from "next/link"
 import "./landing.css"
 
+export const revalidate = 3600 // re-generate at most once per hour
+
 export default function LandingPage() {
   return (
     <>
