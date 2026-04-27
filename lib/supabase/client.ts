@@ -1,9 +1,11 @@
 /**
  * Supabase client factory for PolicyPen
  *
- * Four clients — use the right one:
+ * Five clients — use the right one:
  *
- *   createBrowserClient()   → React components / client components
+ *   useSupabaseClient()     → Client components needing authenticated queries
+ *                             (import from @/lib/supabase/use-client)
+ *   createBrowserClient()   → Client components making public/unauthenticated queries
  *   createServerClient()    → Server components, Server Actions, Route Handlers
  *   createMiddlewareClient()→ middleware.ts ONLY
  *   createServiceClient()   → Clerk webhooks, Stripe webhooks, cron jobs (bypasses RLS)
