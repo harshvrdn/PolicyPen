@@ -438,3 +438,144 @@
   border-top: 1px solid var(--rule);
   margin: 0;
 }
+
+/* ─── Policy showcase ────────────────────────────────────────────────────── */
+.showcase-section {
+  max-width: 960px;
+  margin: 80px auto;
+  padding: 0 32px;
+}
+
+.showcase-heading {
+  text-align: center;
+  font-family: var(--serif);
+  font-size: 30px;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.showcase-sub {
+  text-align: center;
+  color: var(--muted);
+  font-size: 15px;
+  margin-bottom: 40px;
+}
+
+.showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 860px) {
+  .showcase-grid {
+    grid-template-columns: 1fr;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+}
+
+.showcase-card {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.showcase-card-label {
+  padding: 10px 16px;
+  background: var(--paper2);
+  border-bottom: 1px solid var(--rule);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.showcase-card-body {
+  padding: 16px;
+}
+
+.showcase-excerpt-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink2);
+  margin-bottom: 6px;
+}
+
+.showcase-excerpt-text {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.showcase-cta {
+  text-align: center;
+  margin-top: 32px;
+}
+
+/* ─── Landing page mobile ─────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .nav {
+    padding: 12px 16px;
+  }
+
+  .hero {
+    padding: 48px 16px 40px;
+  }
+
+  .hero h1 {
+    font-size: clamp(28px, 8vw, 40px);
+  }
+
+  .hero-sub {
+    font-size: 16px;
+  }
+
+  .hero-ctas {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-ctas .btn-primary,
+  .hero-ctas .btn-ghost {
+    text-align: center;
+  }
+
+  .doc-preview {
+    display: none;
+  }
+
+  .social-proof {
+    margin: 0 16px;
+    padding: 20px 16px;
+    font-size: 14px;
+  }
+
+  .how-it-works {
+    margin: 48px auto;
+    padding: 0 16px;
+  }
+
+  .showcase-section {
+    margin: 48px auto;
+    padding: 0 16px;
+  }
+
+  .pricing-section {
+    padding: 48px 16px;
+  }
+
+  .faq-section {
+    margin: 48px auto;
+    padding: 0 16px;
+  }
+
+  .footer {
+    padding: 24px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
