@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
 import Link from "next/link"
@@ -145,6 +145,8 @@ export default function NewProductPage() {
   const [s4, setS4] = useState<Step4>(STEP4_INIT)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => { setError("") }, [step])
 
   // Auth check — middleware already protects this, but guard client-side too
   if (isLoaded && !isSignedIn) {
