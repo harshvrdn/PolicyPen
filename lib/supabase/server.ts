@@ -1,51 +1,36 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr"
-import { cookies } from "next/headers"
-import type { Database } from "@/types/database"
+/**
+ * createSupabaseServerClient — authenticated Supabase client for server
+ * components, Server Actions, and API route handlers.
+ *
+ * Injects the Clerk session JWT so Supabase RLS policies can validate
+ * auth.uid() == users.clerk_id. Falls back to no Authorization header
+ * when there is no active session (e.g. public pages).
+ *
+ * Note: auth() is async in Next.js 15 — always await it.
+ */
 
-export async function createClient() {
-  const cookieStore = await cookies()
+import { createClient } from "@supabase/supabase-js"
+import { auth } from "@clerk/nextjs/server"
+import type { Database } from "@/types/supabase"
 
-  return createServerClient<Database>(
+export async function createSupabaseServerClient() {
+  const { getToken } = await auth()
+  const token = await getToken({ template: "supabase" })
+
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet: { name: string; value: string; options?: CookieOptions }[]) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // Server component — cookies can be read but not set here
-          }
-        },
+      global: {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      },
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
       },
     }
   )
 }
 
-export async function createServiceClient() {
-  const cookieStore = await cookies()
-
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet: { name: string; value: string; options?: CookieOptions }[]) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {}
-        },
-      },
-    }
-  )
-}
+// Alias used by DAL and route handlers — same function, familiar name.
+export const createServerClient = createSupabaseServerClient

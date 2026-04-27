@@ -14,6 +14,7 @@ import type { NextRequest } from "next/server"
 // ─── Route classification ──────────────────────────────────────────────────
 const isPublicRoute = createRouteMatcher([
   "/",
+  "/demo",
   "/pricing",
   "/features",
   "/blog(.*)",

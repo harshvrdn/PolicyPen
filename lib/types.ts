@@ -24,6 +24,7 @@ export type Jurisdiction =
   | 'CA_ARL'      // California Auto-Renewal Law
   | 'FTC'         // US Federal Trade Commission
   | 'DMCA'        // US — Copyright
+  | 'DPDP'        // India — Digital Personal Data Protection Act 2023
 
 export interface Questionnaire {
   // Step 1 — Identity

@@ -111,6 +111,15 @@ Provide two methods to submit requests. Contact: {{contact_email}}. We will veri
     instruction: `Include a "Brazilian Data Subject Rights (LGPD)" section. Under Brazil's Lei Geral de Proteção de Dados (LGPD), Brazilian users have the right to: confirmation of processing, access to data, correction of incomplete/inaccurate data, anonymization/blocking/deletion of unnecessary data, portability, information about third-party sharing, and revocation of consent. Submit requests to {{contact_email}}. We will respond within 15 business days. The legal basis for processing is {{legal_basis}}.`,
   },
 
+  // DPDP 2023 — India
+  {
+    id: 'dpdp_rights',
+    jurisdiction: ['DPDP'],
+    condition: () => true,
+    priority: 'mandatory',
+    instruction: `Include an "Indian Data Principal Rights (DPDP Act 2023)" section. Under India's Digital Personal Data Protection Act 2023, Indian users (Data Principals) have the right to: access information about their personal data being processed, correct inaccurate or incomplete personal data, erase personal data where the purpose has been fulfilled or consent withdrawn, grievance redressal through our designated contact, and nominate a representative for exercise of rights. We process personal data on the basis of consent or legitimate uses under the Act. We will respond to requests within 30 days. Submit requests to {{contact_email}}. We appoint a Data Protection Officer for India-related queries.`,
+  },
+
   // AI Processing Disclosure
   {
     id: 'ai_processing',

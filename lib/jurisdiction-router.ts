@@ -15,11 +15,13 @@ const GEO_MAP: Record<string, Jurisdiction[]> = {
   'singapore':         ['PDPA'],
   'australia':         ['AU_PRIVACY'],
   'south africa':      ['POPIA'],
+  'india':             ['DPDP'],
   'global / unknown':  ['GDPR', 'CCPA', 'PIPEDA', 'ePrivacy'],
   // Also accept short codes for programmatic use
   'eu':                ['GDPR', 'ePrivacy'],
   'uk':                ['UK_GDPR', 'ePrivacy'],
   'california':        ['CCPA', 'CPRA'],
+  'in':                ['DPDP'],
   'global':            ['GDPR', 'CCPA', 'PIPEDA', 'ePrivacy'],
 }
 
@@ -49,6 +51,9 @@ export function resolveJurisdictions(q: Questionnaire): Jurisdiction[] {
   if (regions.some(r => r.includes('canada'))) {
     laws.add('PIPEDA')
     laws.add('CASL')
+  }
+  if (regions.some(r => r.includes('india') || r === 'in')) {
+    laws.add('DPDP')
   }
   if (regions.some(r => r.includes('global'))) {
     ;(['GDPR', 'CCPA', 'PIPEDA', 'ePrivacy'] as Jurisdiction[]).forEach(j => laws.add(j))
@@ -128,6 +133,9 @@ export function explainJurisdictions(
         break
       case 'AU_PRIVACY':
         explanations[law] = `Activated: active_jurisdictions includes Australia.`
+        break
+      case 'DPDP':
+        explanations[law] = `Activated: active_jurisdictions includes India. Digital Personal Data Protection Act 2023 — consent-based framework structurally similar to GDPR; governs processing of digital personal data of Indian residents.`
         break
       case 'COPPA':
         explanations[law] = `Activated: minimum_age is '${q.minimum_age}'. US law protecting children under 13.`

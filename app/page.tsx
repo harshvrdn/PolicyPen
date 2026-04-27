@@ -1,6 +1,8 @@
 import Link from "next/link"
 import "./landing.css"
 
+export const revalidate = 3600 // re-generate at most once per hour
+
 export default function LandingPage() {
   return (
     <>
@@ -23,22 +25,10 @@ export default function LandingPage() {
         </p>
         <div className="hero-ctas">
           <Link href="/sign-up" className="btn-primary">Generate my policies →</Link>
-          <Link href="/p/sample-product" className="btn-ghost">See a sample policy</Link>
+          <Link href="/demo" className="btn-ghost">See a sample policy</Link>
         </div>
 
-        {/* Faux document preview */}
-        <div className="doc-preview" aria-hidden="true">
-          <div className="doc-line heading"></div>
-          <div className="doc-line"></div>
-          <div className="doc-line"></div>
-          <div className="doc-line"></div>
-          <div className="doc-line"></div>
-          <div className="doc-line heading" style={{ marginTop: "20px" }}></div>
-          <div className="doc-line"></div>
-          <div className="doc-line"></div>
-          <div className="doc-line"></div>
-          <div className="doc-line"></div>
-        </div>
+
       </section>
 
       {/* Social proof */}
@@ -71,6 +61,75 @@ export default function LandingPage() {
               Get a hosted policy page, embed widget, or download PDF/Markdown.
             </p>
           </div>
+        </div>
+      </section>
+
+      <hr className="section-divider" />
+
+      {/* Policy showcase */}
+      <section className="showcase-section">
+        <h2 className="showcase-heading">What your policies look like</h2>
+        <p className="showcase-sub">
+          Real output for Launchify, a fictional SaaS — generated in under 2 minutes.
+        </p>
+        <div className="showcase-grid">
+
+          {/* Privacy Policy card */}
+          <div className="showcase-card">
+            <div className="showcase-card-label">Privacy Policy</div>
+            <div className="showcase-card-body">
+              <div className="showcase-excerpt-heading">1. Information We Collect</div>
+              <p className="showcase-excerpt-text">
+                When you create an account or use our Service, we collect your name, email address,
+                payment information (processed by Stripe), and content you create within the platform.
+                We also automatically collect log data, device information, and usage analytics.
+              </p>
+              <div className="showcase-excerpt-heading" style={{ marginTop: 14 }}>2. How We Use Your Information</div>
+              <p className="showcase-excerpt-text">
+                We use the information we collect to provide and improve the Service, process transactions,
+                send technical notices, respond to your requests, and comply with legal obligations.
+              </p>
+            </div>
+          </div>
+
+          {/* Terms of Service card */}
+          <div className="showcase-card">
+            <div className="showcase-card-label">Terms of Service</div>
+            <div className="showcase-card-body">
+              <div className="showcase-excerpt-heading">1. Acceptance of Terms</div>
+              <p className="showcase-excerpt-text">
+                By accessing or using Launchify, you agree to be bound by these Terms of Service and our
+                Privacy Policy. These Terms constitute a legally binding agreement between you and Launchify Inc.
+              </p>
+              <div className="showcase-excerpt-heading" style={{ marginTop: 14 }}>4. Subscription &amp; Billing</div>
+              <p className="showcase-excerpt-text">
+                Paid plans are billed monthly or annually in advance. We offer a 14-day free trial.
+                Subscriptions auto-renew unless cancelled at least 24 hours before the renewal date.
+              </p>
+            </div>
+          </div>
+
+          {/* Cookie Policy card */}
+          <div className="showcase-card">
+            <div className="showcase-card-label">Cookie Policy</div>
+            <div className="showcase-card-body">
+              <div className="showcase-excerpt-heading">What Are Cookies</div>
+              <p className="showcase-excerpt-text">
+                Cookies are small text files placed on your device when you visit our website. We use
+                strictly necessary cookies for authentication, analytics cookies to understand usage
+                patterns, and preference cookies to remember your settings.
+              </p>
+              <div className="showcase-excerpt-heading" style={{ marginTop: 14 }}>Your Choices</div>
+              <p className="showcase-excerpt-text">
+                You can control cookies through your browser settings or our cookie preference centre.
+                Blocking strictly necessary cookies may prevent certain features from working correctly.
+              </p>
+            </div>
+          </div>
+
+        </div>
+        <div className="showcase-cta">
+          <Link href="/demo" className="btn-ghost">Read the full sample policy →</Link>
         </div>
       </section>
 
