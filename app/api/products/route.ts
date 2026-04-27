@@ -53,13 +53,22 @@ export async function POST(request: Request) {
         )
       }
 
-      user = await getCurrentUser(userId)
-      if (!user) {
+      // Use service client here — getCurrentUser goes through RLS which requires a
+      // configured Clerk JWT template; bypass that for this one safety-net read.
+      const { data: fetchedUser, error: fetchErr } = await svc
+        .from("users")
+        .select("*")
+        .eq("clerk_id", userId)
+        .single()
+
+      if (fetchErr || !fetchedUser) {
+        console.error("[api/products] Re-fetch user failed:", fetchErr?.message)
         return NextResponse.json(
           { error: "User profile not found. Please sign out and back in." },
           { status: 404 }
         )
       }
+      user = fetchedUser
     }
 
     if (user.max_products != null && user.products_count >= user.max_products) {
@@ -72,6 +81,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const {
       name,
+      slug: clientSlug,
       website_url,
       description,
       business_type,
@@ -86,11 +96,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Product name is required." }, { status: 400 })
     }
 
+    // Use client-generated slug when provided (belt-and-suspenders); otherwise
+    // try the DB RPC, falling back to local slugify.
     let slug: string
-    try {
-      slug = await generateProductSlug(name)
-    } catch {
-      slug = slugify(name) + "-" + Math.random().toString(36).slice(2, 6)
+    if (clientSlug && typeof clientSlug === "string" && clientSlug.trim()) {
+      slug = clientSlug.trim()
+    } else {
+      try {
+        slug = await generateProductSlug(name)
+      } catch {
+        slug = slugify(name) + "-" + Math.random().toString(36).slice(2, 6)
+      }
     }
 
     const product = await createProduct({

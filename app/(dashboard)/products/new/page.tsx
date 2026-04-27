@@ -59,7 +59,7 @@ const JURISDICTIONS = [
   { value: "CA", label: "Canada (PIPEDA)" },
   { value: "AU", label: "Australia" },
   { value: "BR", label: "Brazil (LGPD)" },
-  { value: "IN", label: "India (DPDP 2023)" },
+  { value: "IN", label: "India" },
   { value: "GLOBAL", label: "Global (all of the above)" },
 ]
 
@@ -76,6 +76,17 @@ const STEP3_INIT: Step3 = { primary_jurisdiction: "US", company_legal_name: "", 
 const STEP4_INIT: Step4 = { needed_policies: ["privacy_policy"] }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 50)
+}
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
@@ -190,10 +201,16 @@ export default function NewProductPage() {
     setError("")
 
     try {
+      // Generate slug client-side so the API always receives one even if its
+      // DB RPC (generate_slug) fails. Append a short random suffix to avoid
+      // collisions without a uniqueness check on the client.
+      const slug = slugify(s1.name) + "-" + Math.random().toString(36).slice(2, 6)
+
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          slug,
           name: s1.name,
           website_url: s1.website_url,
           business_type: s1.business_type,
@@ -211,13 +228,15 @@ export default function NewProductPage() {
         }),
       })
 
-      // Parse response body — handle non-JSON responses gracefully
+      // Clone before attempting JSON parse — .json() drains the body stream,
+      // making a subsequent .text() call return empty if JSON parsing fails.
+      const resClone = res.clone()
       let data: { error?: string; product?: { slug: string } } = {}
       try {
         data = await res.json()
       } catch {
-        const text = await res.text().catch(() => "")
-        const msg = `Server returned ${res.status} — ${text.slice(0, 120) || "no response body"}`
+        const text = await resClone.text().catch(() => "")
+        const msg = `Server error ${res.status}: ${text.slice(0, 200) || "(empty response)"}`
         console.error("[NewProduct] API parse error:", msg)
         setError(msg)
         setLoading(false)
@@ -225,7 +244,7 @@ export default function NewProductPage() {
       }
 
       if (!res.ok) {
-        const errMsg = data.error || `Request failed with status ${res.status}`
+        const errMsg = data.error || `Request failed (${res.status})`
         console.error("[NewProduct] API error:", errMsg)
         setError(errMsg)
         setLoading(false)
