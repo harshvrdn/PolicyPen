@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
           content_markdown:        undefined,
           content_hash:            contentHash,
           status:                  'active',
-          word_count:              accumulatedHtml.split(/\s+/).length,
+          word_count:              accumulatedHtml.replace(/<[^>]+>/g, ' ').trim().split(/\s+/).filter(Boolean).length,
           generation_tokens_used:  result.tokens_input + result.tokens_output,
           generation_cost_usd:     result.cost_usd,
           jurisdiction_codes:      result.jurisdictions,

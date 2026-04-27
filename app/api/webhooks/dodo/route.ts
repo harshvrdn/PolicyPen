@@ -173,7 +173,10 @@ export async function POST(request: Request) {
     }
 
     case "subscription.cancelled": {
-      const subscriptionId = event.data.subscription_id as string | undefined
+      const subscriptionId  = event.data.subscription_id as string | undefined
+      // Use current_period_end from the event so the user retains access until
+      // the period they already paid for ends, not at the moment of cancellation.
+      const periodEnd = (event.data.current_period_end ?? event.data.next_billing_date) as string | undefined
 
       if (!subscriptionId) {
         console.error("[dodo-webhook] subscription.cancelled: missing subscription_id", event.data)
@@ -184,7 +187,7 @@ export async function POST(request: Request) {
         .from("users")
         .update({
           subscription_status: "cancelled",
-          plan_expires_at: new Date().toISOString(),
+          plan_expires_at: periodEnd ?? null,
           updated_at: new Date().toISOString(),
         })
         .eq("dodo_subscription_id", subscriptionId)
@@ -192,7 +195,7 @@ export async function POST(request: Request) {
       if (error) {
         console.error("[dodo-webhook] subscription.cancelled: DB update failed", error)
       } else {
-        console.log(`[dodo-webhook] subscription.cancelled: subscription ${subscriptionId} marked cancelled`)
+        console.log(`[dodo-webhook] subscription.cancelled: subscription ${subscriptionId} expires ${periodEnd ?? "at natural end"}`)
       }
       break
     }

@@ -91,11 +91,12 @@ export async function GET(
     return NextResponse.json({ error: "Policy is not ready for export" }, { status: 400 })
   }
 
-  const safeTitle = (policy.title ?? "policy")
-    .replace(/[^a-zA-Z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .toLowerCase()
+  const safeTitle =
+    (policy.title ?? "policy")
+      .replace(/[^a-zA-Z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-")
+      .toLowerCase() || "policy"
 
   if (format === "markdown") {
     const markdown =
