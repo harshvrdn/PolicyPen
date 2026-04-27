@@ -77,7 +77,7 @@ export default function PolicyPenTosPage() {
         <p>
           PolicyPen offers free trial access and three paid plans: Starter ($9/mo), Builder ($29/mo), and
           Studio ($59/mo). Feature availability varies by plan as described at{" "}
-          <a href="/#pricing">policypen.io/#pricing</a>.
+          <Link href="/#pricing">policypen.io/#pricing</Link>.
         </p>
 
         <h3>Billing</h3>
