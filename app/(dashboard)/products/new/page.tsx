@@ -59,6 +59,7 @@ const JURISDICTIONS = [
   { value: "CA", label: "Canada (PIPEDA)" },
   { value: "AU", label: "Australia" },
   { value: "BR", label: "Brazil (LGPD)" },
+  { value: "IN", label: "India (DPDP 2023)" },
   { value: "GLOBAL", label: "Global (all of the above)" },
 ]
 
@@ -146,6 +147,7 @@ export default function NewProductPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => { setError("") }, [])
   useEffect(() => { setError("") }, [step])
 
   // Auth check — middleware already protects this, but guard client-side too
