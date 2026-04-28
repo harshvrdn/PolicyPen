@@ -1,7 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { getUserDashboard, getUserProducts, getLawUpdates } from "@/lib/db/dal"
+import { getUserDashboard, getUserProducts, getLawUpdates, getCurrentUser } from "@/lib/db/dal"
 import type { LawUpdateSeverity, UserDashboard } from "@/types/supabase"
 
 function greeting(): string {
@@ -69,16 +69,22 @@ export default async function DashboardPage() {
   const { userId } = await auth()
   if (!userId) return null
 
-  const [clerkUser, dashboard, products, lawUpdates] = await Promise.all([
+  const [clerkUser, dashboard, dbUser, products, lawUpdates] = await Promise.all([
     currentUser(),
     getUserDashboard().catch(() => null),
+    getCurrentUser(userId).catch(() => null),
     getUserProducts().catch(() => []),
     getLawUpdates(3).catch(() => []),
   ])
 
   const firstName = clerkUser?.firstName || "there"
 
-  // New users with no products go straight to setup
+  // First-time users who haven't completed onboarding
+  if (dbUser && !dbUser.onboarding_completed) {
+    redirect("/onboarding")
+  }
+
+  // Users who completed onboarding but haven't created a product yet
   if (
     dashboard &&
     (dashboard.products_count ?? 0) === 0 &&

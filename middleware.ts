@@ -35,6 +35,7 @@ const isAuthRoute = createRouteMatcher([
 
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
+  "/onboarding(.*)",
   "/products(.*)",
   "/policies(.*)",
   "/settings(.*)",

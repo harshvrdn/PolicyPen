@@ -951,3 +951,128 @@
     align-items: flex-start;
   }
 }
+
+/* ─── Onboarding wizard ──────────────────────────────────────────────────── */
+.onboarding-wrap {
+  max-width: 540px;
+  margin: 56px auto;
+  padding: 0 24px;
+}
+
+.onboarding-logo {
+  font-family: var(--serif);
+  font-size: 18px;
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin-bottom: 40px;
+}
+
+.onboarding-screen {
+  animation: fadeIn 0.18s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.onboarding-heading {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.5px;
+  margin-bottom: 10px;
+}
+
+.onboarding-sub {
+  font-size: 15px;
+  color: var(--ink2);
+  line-height: 1.6;
+  margin-bottom: 28px;
+  max-width: 440px;
+}
+
+.onboarding-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.onboarding-bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 10px 0;
+  font-size: 14px;
+  color: var(--ink2);
+  line-height: 1.5;
+  border-bottom: 1px solid var(--rule);
+}
+
+.onboarding-bullet:last-child { border-bottom: none; }
+
+.onboarding-bullet-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--sans);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.onboarding-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.onboarding-skip {
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--sans);
+}
+
+.onboarding-skip:hover { color: var(--ink2); }
+.onboarding-skip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.onboarding-success-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 22px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 600px) {
+  .onboarding-wrap {
+    margin: 32px auto;
+  }
+
+  .onboarding-heading {
+    font-size: 22px;
+  }
+}
