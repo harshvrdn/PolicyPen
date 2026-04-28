@@ -11,6 +11,7 @@ import {
   getCurrentUser,
   canUserGeneratePolicy,
   countActiveGenerations,
+  retireOldPolicyVersions,
   createPolicyRecord,
   savePolicyContent,
   markPolicyError,
@@ -133,13 +134,13 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'User not found. Try signing out and back in.' }, { status: 404 })
   }
 
-  const canGenerate = await canUserGeneratePolicy(userId, productId).catch(() => ({ allowed: false, reason: 'Plan check failed' }))
+  const canGenerate = await canUserGeneratePolicy(dbUser.id, productId).catch(() => ({ allowed: false, reason: 'Plan check failed' }))
   if (!canGenerate.allowed) {
     return Response.json({ error: canGenerate.reason ?? 'Plan limit reached. Upgrade to generate more policies.' }, { status: 403 })
   }
 
   // ── Rate limit: max 3 concurrent generations per user ─────
-  const activeCount = await countActiveGenerations(userId)
+  const activeCount = await countActiveGenerations(dbUser.id)
   if (activeCount >= 3) {
     return Response.json(
       { error: 'You already have active generations running. Please wait for them to complete.' },
@@ -148,11 +149,15 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 4. Create pending policy record ───────────────────────
+  // Retire any existing version first to satisfy the unique constraint
+  // on (product_id, policy_type, is_current_version).
+  await retireOldPolicyVersions(productId, policyType).catch(() => {})
+
   let policyId: string
   try {
     const record = await createPolicyRecord({
       product_id:   productId,
-      user_id:      userId,
+      user_id:      dbUser.id,
       policy_type:  policyType,
       title:        `${questionnaire.product_name ?? 'Product'} — ${policyType.replace(/_/g, ' ')}`,
       status:       'generating',

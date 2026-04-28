@@ -306,6 +306,20 @@ export async function getPublishedPolicy(
   return { policy, product }
 }
 
+/** Retire all existing versions so the new insert doesn't hit the unique constraint */
+export async function retireOldPolicyVersions(
+  productId: string,
+  policyType: string
+): Promise<void> {
+  const supabase = createServiceClient()
+  await supabase
+    .from("policies")
+    .update({ is_current_version: false })
+    .eq("product_id", productId)
+    .eq("policy_type", policyType as never)
+    .eq("is_current_version", true)
+}
+
 /** Create a new policy record (before generation starts) */
 export async function createPolicyRecord(
   input: TablesInsert<"policies">
@@ -356,7 +370,7 @@ export async function markPolicyError(
   const supabase = createServiceClient()
   await supabase
     .from("policies")
-    .update({ status: "error", generation_error: errorMessage })
+    .update({ status: "error", generation_error: errorMessage, is_current_version: false })
     .eq("id", policyId)
 }
 
