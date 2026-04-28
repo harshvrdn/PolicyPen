@@ -133,13 +133,13 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'User not found. Try signing out and back in.' }, { status: 404 })
   }
 
-  const canGenerate = await canUserGeneratePolicy(dbUser.id, productId).catch(() => ({ allowed: false, reason: 'Plan check failed' }))
+  const canGenerate = await canUserGeneratePolicy(userId, productId).catch(() => ({ allowed: false, reason: 'Plan check failed' }))
   if (!canGenerate.allowed) {
     return Response.json({ error: canGenerate.reason ?? 'Plan limit reached. Upgrade to generate more policies.' }, { status: 403 })
   }
 
   // ── Rate limit: max 3 concurrent generations per user ─────
-  const activeCount = await countActiveGenerations(dbUser.id)
+  const activeCount = await countActiveGenerations(userId)
   if (activeCount >= 3) {
     return Response.json(
       { error: 'You already have active generations running. Please wait for them to complete.' },
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
   try {
     const record = await createPolicyRecord({
       product_id:   productId,
-      user_id:      dbUser.id,
+      user_id:      userId,
       policy_type:  policyType,
       title:        `${questionnaire.product_name ?? 'Product'} — ${policyType.replace(/_/g, ' ')}`,
       status:       'generating',
@@ -160,8 +160,9 @@ export async function POST(req: NextRequest) {
     })
     policyId = record.id
   } catch (err) {
-    console.error('[generate] Failed to create policy record:', err)
-    return Response.json({ error: 'Failed to initialise policy record' }, { status: 500 })
+    const detail = err instanceof Error ? err.message : String(err)
+    console.error('[generate] Failed to create policy record:', detail)
+    return Response.json({ error: `Failed to initialise policy record: ${detail}` }, { status: 500 })
   }
 
   // ── 5. Stream from Claude → SSE ───────────────────────────
