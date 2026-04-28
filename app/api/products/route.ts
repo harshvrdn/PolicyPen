@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    let user = await getCurrentUser(userId)
+    let user = await getCurrentUser(userId).catch(() => null)
 
     // Safety net: Clerk webhook may not have fired yet (common during local dev /
     // initial setup). Auto-create a minimal user record so product creation works.
