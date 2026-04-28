@@ -29,9 +29,11 @@ import type {
 // USERS
 // ═════════════════════════════════════════════════════════════
 
-/** Get current user record by Clerk ID (from Clerk auth context) */
+/** Get current user record by Clerk ID (from Clerk auth context).
+ *  Uses the service client so this works in both Server Components and
+ *  API Route Handlers — caller always supplies a Clerk-verified ID. */
 export async function getCurrentUser(clerkId: string): Promise<User | null> {
-  const supabase = await createServerClient()
+  const supabase = createServiceClient()
   const { data, error } = await supabase
     .from("users")
     .select("*")
