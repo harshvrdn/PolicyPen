@@ -1,10 +1,11 @@
 /**
  * POST /api/webhooks/dodo
  *
+ * Fallback handler — primary handler is the Supabase Edge Function.
  * Verifies Dodo Payments webhook signature via Svix and handles subscription
  * lifecycle events to keep public.users in sync.
  *
- * Dodo uses Svix headers: svix-id, svix-timestamp, svix-signature
+ * Dodo webhook headers: webhook-id, webhook-timestamp, webhook-signature
  *
  * Env required:
  *   DODO_PAYMENTS_WEBHOOK_KEY   — signing secret from Dodo Dashboard → Developer → Webhooks
@@ -42,13 +43,13 @@ function getPlanFromProductId(productId: string): PlanConfig | null {
 export async function POST(request: Request) {
   const rawBody = await request.text()
 
-  const svixId        = request.headers.get("svix-id")
-  const svixTimestamp = request.headers.get("svix-timestamp")
-  const svixSignature = request.headers.get("svix-signature")
+  const webhookId        = request.headers.get("webhook-id")
+  const webhookTimestamp = request.headers.get("webhook-timestamp")
+  const webhookSignature = request.headers.get("webhook-signature")
 
-  if (!svixId || !svixTimestamp || !svixSignature) {
-    console.error("[dodo-webhook] Missing svix headers")
-    return NextResponse.json({ error: "Missing svix headers" }, { status: 400 })
+  if (!webhookId || !webhookTimestamp || !webhookSignature) {
+    console.error("[dodo-webhook] Missing webhook headers")
+    return NextResponse.json({ error: "Missing webhook headers" }, { status: 400 })
   }
 
   const wh = new Webhook(process.env.DODO_PAYMENTS_WEBHOOK_KEY!)
@@ -56,9 +57,9 @@ export async function POST(request: Request) {
   let event: { type: string; data: Record<string, unknown> }
   try {
     event = wh.verify(rawBody, {
-      "svix-id":        svixId,
-      "svix-timestamp": svixTimestamp,
-      "svix-signature": svixSignature,
+      "webhook-id":        webhookId,
+      "webhook-timestamp": webhookTimestamp,
+      "webhook-signature": webhookSignature,
     }) as { type: string; data: Record<string, unknown> }
   } catch (err) {
     console.error("[dodo-webhook] Verification failed:", err)
