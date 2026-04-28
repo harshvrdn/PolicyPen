@@ -46,53 +46,53 @@ function interpolate(template: string, q: Questionnaire): string {
   }
 
   const vars: Record<string, string> = {
-    company_name:          q.company_name,
-    product_name:          q.product_name,
-    website_url:           q.website_url,
-    contact_email:         q.contact_email,
-    dpo_email:             q.dpo_email ?? '',
-    business_address:      q.business_address ?? '',
-    incorporation_country: q.incorporation_country,
-    effective_date:        q.effective_date,
-    product_type:          q.product_type,
-    minimum_age:           q.minimum_age,
-    user_type:             q.user_type,
-    ugc_type:              q.ugc_type,
-    location_data:         q.location_data,
-    data_selling:          q.data_selling,
-    deletion_mechanism:    q.deletion_mechanism,
-    data_portability:      q.data_portability,
-    governing_law:         q.governing_law,
-    dispute_resolution:    q.dispute_resolution,
-    auto_renewal:          q.auto_renewal ?? 'no',
+    company_name:          q.company_name          ?? '',
+    product_name:          q.product_name          ?? '',
+    website_url:           q.website_url           ?? '',
+    contact_email:         q.contact_email         ?? '',
+    dpo_email:             q.dpo_email             ?? '',
+    business_address:      q.business_address      ?? '',
+    incorporation_country: q.incorporation_country ?? '',
+    effective_date:        q.effective_date        ?? '',
+    product_type:          q.product_type          ?? '',
+    minimum_age:           q.minimum_age           ?? '13',
+    user_type:             q.user_type             ?? '',
+    ugc_type:              q.ugc_type              ?? '',
+    location_data:         q.location_data         ?? '',
+    data_selling:          q.data_selling          ?? '',
+    deletion_mechanism:    q.deletion_mechanism    ?? '',
+    data_portability:      q.data_portability      ?? '',
+    governing_law:         q.governing_law         ?? '',
+    dispute_resolution:    q.dispute_resolution    ?? '',
+    auto_renewal:          q.auto_renewal          ?? 'no',
     trial_duration_days:   String(q.trial_duration_days ?? 14),
-    free_trial_type:       q.free_trial_type ?? 'none',
-    termination_policy:    q.termination_policy.replace(/_/g, ' '),
+    free_trial_type:       q.free_trial_type       ?? 'none',
+    termination_policy:    (q.termination_policy   ?? '').replace(/_/g, ' '),
 
     // Enum translations
-    liability_cap:        LIABILITY_CAP_MAP[q.liability_cap] ?? q.liability_cap,
-    retention_period:     RETENTION_MAP[q.retention_period] ?? q.retention_period,
-    refund_policy:        REFUND_MAP[q.refund_policy ?? ''] ?? (q.refund_policy ?? ''),
+    liability_cap:        LIABILITY_CAP_MAP[q.liability_cap]    ?? (q.liability_cap ?? ''),
+    retention_period:     RETENTION_MAP[q.retention_period]     ?? (q.retention_period ?? ''),
+    refund_policy:        REFUND_MAP[q.refund_policy ?? '']     ?? (q.refund_policy ?? ''),
     cancellation_policy:  CANCELLATION_MAP[q.cancellation_policy ?? ''] ?? (q.cancellation_policy ?? ''),
 
     // Array fields joined as human-readable list
-    legal_basis:              q.legal_basis.join(', '),
-    business_model:           q.business_model.join(', '),
-    identity_data:            q.identity_data.join(', '),
-    usage_data:               q.usage_data.join(', '),
-    payment_data:             q.payment_data.join(', '),
-    special_category_data:    q.special_category_data.join(', '),
-    regulated_industry:       q.regulated_industry.join(', '),
-    ai_features:              q.ai_features.join(', '),
-    data_storage_regions:     q.data_storage_regions.join(', '),
-    analytics_tools:          q.analytics_tools.join(', '),
-    third_parties:            q.third_parties.join(', '),
-    cookie_categories:        q.cookie_categories.join(', '),
-    tracking_technologies:    q.tracking_technologies.join(', '),
-    marketing_channels:       q.marketing_channels.join(', '),
-    dsar_mechanism:           q.dsar_mechanism.join(', '),
-    active_jurisdictions:     q.active_jurisdictions.join(', '),
-    excluded_regions:         (q.excluded_regions ?? []).join(', '),
+    legal_basis:              (q.legal_basis              ?? []).join(', '),
+    business_model:           (q.business_model           ?? []).join(', '),
+    identity_data:            (q.identity_data            ?? []).join(', '),
+    usage_data:               (q.usage_data               ?? []).join(', '),
+    payment_data:             (q.payment_data             ?? []).join(', '),
+    special_category_data:    (q.special_category_data    ?? []).join(', '),
+    regulated_industry:       (q.regulated_industry       ?? []).join(', '),
+    ai_features:              (q.ai_features              ?? []).join(', '),
+    data_storage_regions:     (q.data_storage_regions     ?? []).join(', '),
+    analytics_tools:          (q.analytics_tools          ?? []).join(', '),
+    third_parties:            (q.third_parties            ?? []).join(', '),
+    cookie_categories:        (q.cookie_categories        ?? []).join(', '),
+    tracking_technologies:    (q.tracking_technologies    ?? []).join(', '),
+    marketing_channels:       (q.marketing_channels       ?? []).join(', '),
+    dsar_mechanism:           (q.dsar_mechanism           ?? []).join(', '),
+    active_jurisdictions:     (q.active_jurisdictions     ?? []).join(', '),
+    excluded_regions:         (q.excluded_regions         ?? []).join(', '),
   }
 
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `[${key}]`)
@@ -175,7 +175,7 @@ COOKIE POLICY REQUIREMENTS:
 - Required sections (in order): What Are Cookies, Why We Use Cookies, Types of Cookies, Third-Party Cookies, Cookie Consent (EU/UK), Managing Your Preferences, Changes to This Policy, Contact Us
 - Include a cookie table listing name, purpose, type, and duration for the primary cookies
 - Explain how to manage cookies in major browsers (Chrome, Firefox, Safari, Edge)
-- Link to relevant third-party cookie policies (analytics tools: ${q.analytics_tools.join(', ')})`
+- Link to relevant third-party cookie policies (analytics tools: ${(q.analytics_tools ?? []).join(', ')})`
 
     case 'refund':
       return `
@@ -237,7 +237,7 @@ function buildUserTurn(
 
 Key facts:
 - Product type: ${q.product_type}
-- Business model: ${q.business_model.join(', ')}
+- Business model: ${(q.business_model ?? []).join(', ')}
 - Active jurisdictions: ${jurisdictions.join(', ')}
 - Users: ${q.user_type}, minimum age ${q.minimum_age}
 

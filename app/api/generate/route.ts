@@ -42,14 +42,14 @@ export async function POST(req: NextRequest) {
 
   // ── 2. Parse body ─────────────────────────────────────────
   let policyTypeRaw: string
-  let questionnaire: Questionnaire
+  let clientQuestionnaire: Record<string, unknown>
   let productId: string
 
   try {
     const body = await req.json()
-    policyTypeRaw = body.policy_type as string
-    questionnaire = body.questionnaire as Questionnaire
-    productId     = body.product_id as string
+    policyTypeRaw        = body.policy_type as string
+    clientQuestionnaire  = (body.questionnaire ?? {}) as Record<string, unknown>
+    productId            = body.product_id as string
 
     if (!productId) {
       return Response.json({ error: 'product_id is required' }, { status: 400 })
@@ -62,6 +62,70 @@ export async function POST(req: NextRequest) {
   }
 
   const policyType = POLICY_TYPE_MAP[policyTypeRaw]
+
+  // ── 2b. Build a complete questionnaire from product data ──
+  // The wizard only saves a subset of fields; enrich from the
+  // product row so the prompt builder always has what it needs.
+  const product = await getProductById(productId).catch(() => null)
+  if (!product) {
+    return Response.json({ error: 'Product not found' }, { status: 404 })
+  }
+
+  const stored       = (product.questionnaire_data ?? {}) as Record<string, unknown>
+  const dataCols     = (stored.data_collected as string[]) ?? []
+  const usesCookies  = Boolean(stored.uses_cookies)
+  const sharesThird  = Boolean(stored.shares_with_third_parties)
+
+  const questionnaire: Questionnaire = {
+    // Identity — from product row
+    company_name:          product.company_legal_name ?? product.name,
+    product_name:          product.name,
+    website_url:           product.website_url       ?? '',
+    contact_email:         product.contact_email     ?? '',
+    business_address:      product.company_address   ?? '',
+    incorporation_country: product.primary_jurisdiction ?? 'US',
+    effective_date:        new Date().toISOString().slice(0, 10),
+
+    // Product
+    product_type:          product.business_type ?? 'SaaS',
+    business_model:        ['subscription'],
+    minimum_age:           '13',
+    user_type:             'consumer',
+    regulated_industry:    [],
+    ugc_type:              'none',
+    ai_features:           [],
+
+    // Data — derived from questionnaire_data.data_collected
+    identity_data:         dataCols.filter(d => ['email_addresses', 'third_party_auth'].includes(d)),
+    usage_data:            dataCols.filter(d => ['usage_analytics'].includes(d)),
+    payment_data:          dataCols.filter(d => ['payment_info'].includes(d)),
+    location_data:         dataCols.includes('location_data') ? 'approximate' : 'none',
+    special_category_data: dataCols.filter(d => ['health_data'].includes(d)),
+    legal_basis:           ['legitimate_interests', 'contract'],
+    retention_period:      '1_year',
+    data_storage_regions:  [product.primary_jurisdiction ?? 'US'],
+    data_selling:          'never',
+    analytics_tools:       [],
+    third_parties:         sharesThird ? ['payment_processor', 'analytics'] : [],
+
+    // Cookies & Rights
+    cookie_categories:     usesCookies ? ['necessary', 'analytics'] : ['necessary'],
+    tracking_technologies: usesCookies ? ['cookies', 'local_storage'] : [],
+    marketing_channels:    [],
+    dsar_mechanism:        ['email'],
+    deletion_mechanism:    'email_request',
+    data_portability:      'on_request',
+
+    // Legal
+    active_jurisdictions:  [product.primary_jurisdiction ?? 'US'],
+    governing_law:         product.primary_jurisdiction ?? 'US',
+    dispute_resolution:    'litigation',
+    liability_cap:         '12_months',
+    termination_policy:    'end_of_period',
+
+    // Allow anything passed from the client to override the above
+    ...clientQuestionnaire as Partial<Questionnaire>,
+  }
 
   // ── 3. Get user + plan check ──────────────────────────────
   const dbUser = await getCurrentUser(userId).catch(() => null)
