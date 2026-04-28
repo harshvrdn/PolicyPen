@@ -37,7 +37,8 @@ Solo founder. Stack: Next.js 15, Supabase (data only), Clerk, Anthropic API, Dod
 ## Key Files
 | File | Purpose |
 |---|---|
-| `/lib/supabase/client.ts` | All Supabase clients (browser, server, service) |
+| `/lib/supabase/client.ts` | Browser client hook + service role client |
+| `/lib/supabase/server.ts` | Server client factory (injects Clerk JWT for RLS) |
 | `/lib/supabase/middleware.ts` | Supabase middleware client |
 | `/lib/db/dal.ts` | Data access layer — all DB queries go here |
 | `/lib/types.ts` | Shared TypeScript interfaces |
@@ -130,11 +131,12 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
 CLERK_WEBHOOK_SECRET=
 ANTHROPIC_API_KEY=
-DODO_SECRET_KEY=
-DODO_WEBHOOK_SECRET=
-NEXT_PUBLIC_PRICE_ID_STARTER=
-NEXT_PUBLIC_PRICE_ID_BUILDER=
-NEXT_PUBLIC_PRICE_ID_STUDIO=
+DODO_PAYMENTS_API_KEY=
+DODO_PAYMENTS_WEBHOOK_KEY=
+DODO_PAYMENTS_ENVIRONMENT=live_mode
+DODO_PRICE_ID_STARTER=
+DODO_PRICE_ID_BUILDER=
+DODO_PRICE_ID_STUDIO=
 NEXT_PUBLIC_APP_URL=
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=
