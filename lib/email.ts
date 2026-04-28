@@ -86,6 +86,39 @@ export async function sendPaymentConfirmationEmail(
   }
 }
 
+export async function sendPolicyReadyEmail(
+  to: string,
+  firstName: string | null,
+  productName: string,
+  policyType: string,
+  productUrl: string
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) return
+
+  const name = firstName ?? "there"
+  const typeLabel = policyType
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+
+  const html = baseTemplate(`
+    <h1>Your ${typeLabel} is ready, ${name}.</h1>
+    <p>We've generated a <strong>${typeLabel}</strong> for <strong>${productName}</strong>. It's live and ready to share or embed on your website.</p>
+    <a href="${productUrl}" class="btn">View your policy →</a>
+    <p>From your product page you can export as HTML or Markdown, copy a hosted link, or regenerate at any time.</p>
+  `)
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `Your ${typeLabel} for ${productName} is ready`,
+      html,
+    })
+  } catch (err) {
+    console.error("[email:policy-ready]", err)
+  }
+}
+
 export async function sendLawUpdateEmail(
   to: string,
   updates: { title: string; regulation: string; severity: string; summary: string }[]

@@ -14,9 +14,13 @@ import {
   createPolicyRecord,
   savePolicyContent,
   markPolicyError,
+  getProductById,
 } from '@/lib/db/dal'
+import { sendPolicyReadyEmail } from '@/lib/email'
 import type { PolicyType } from '@/types/supabase'
 import type { Questionnaire } from '@/lib/types'
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://policypen.io'
 
 export const runtime     = 'nodejs'
 export const maxDuration = 60
@@ -134,7 +138,23 @@ export async function POST(req: NextRequest) {
           published_at:            new Date().toISOString(),
         })
 
-        // ── 7. Done event ───────────────────────────────────
+        // ── 7. Fire-and-forget policy ready email ──────────
+        if (dbUser.email) {
+          const firstName = dbUser.full_name?.split(' ')[0] ?? null
+          getProductById(productId)
+            .then((product) =>
+              sendPolicyReadyEmail(
+                dbUser.email!,
+                firstName,
+                product?.name ?? questionnaire.product_name ?? 'your product',
+                policyType,
+                product ? `${APP_URL}/products/${product.slug}` : `${APP_URL}/dashboard`,
+              )
+            )
+            .catch(() => {})
+        }
+
+        // ── 8. Done event ───────────────────────────────────
         controller.enqueue(
           encoder.encode(
             `data: ${JSON.stringify({
