@@ -104,8 +104,13 @@ CREATE TABLE public.policies (
   cdn_invalidated_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(product_id, policy_type, is_current_version) DEFERRABLE INITIALLY DEFERRED
 );
+
+-- Only one "current" version per policy type per product is allowed.
+-- Historical versions (is_current_version = false) are unlimited.
+CREATE UNIQUE INDEX IF NOT EXISTS policies_one_current_version_per_type
+  ON public.policies(product_id, policy_type)
+  WHERE is_current_version = true;
 
 -- Law updates table
 CREATE TABLE public.law_updates (
