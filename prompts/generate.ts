@@ -1,20 +1,26 @@
 // ============================================================
 // PolicyPen — Policy Generation Entry Point
-// Provider: Claude (primary) → OpenRouter (fallback)
-// Override via LLM_PROVIDER / LLM_FALLBACK_PROVIDER env vars
+//
+// Provider is chosen by user plan:
+//   free / starter → OpenRouter (Gemma free / Gemini MM free)
+//   builder        → OpenAI GPT-5
+//   studio         → Claude
+//
+// Any failure (auth, rate limit, crash) → auto-retry with Claude.
+// If Claude itself was the primary and fails, the error is raised.
 // ============================================================
 
 import type { GenerationResult, PolicyType, Questionnaire } from '@/lib/types'
 import { buildPrompt } from '@/prompts/builder'
-import { generateWithProvider, resolveProvider, type LLMProvider } from '@/lib/llm/providers'
+import { generateWithProvider, configForPlan } from '@/lib/llm/providers'
 
-const PRIMARY_PROVIDER: LLMProvider  = resolveProvider(process.env.LLM_PROVIDER)
-const FALLBACK_PROVIDER: LLMProvider = resolveProvider(process.env.LLM_FALLBACK_PROVIDER ?? 'openrouter')
+const CLAUDE_FALLBACK_MODEL = process.env.CLAUDE_MODEL ?? 'claude-sonnet-4-6'
 
 export async function generatePolicy(
-  policyType: PolicyType,
+  policyType:    PolicyType,
   questionnaire: Questionnaire,
-  onStream?: (chunk: string) => void
+  onStream?:     (chunk: string) => void,
+  plan?:         string | null,
 ): Promise<GenerationResult> {
   const { system, user, metadata } = buildPrompt(policyType, questionnaire)
 
@@ -24,24 +30,24 @@ export async function generatePolicy(
     onStream?.(text)
   }
 
-  // Try primary, fall back on any error
+  const { provider, model } = configForPlan(plan)
+  let usedProvider = provider
   let result
-  let usedProvider = PRIMARY_PROVIDER
+
   try {
-    result = await generateWithProvider(PRIMARY_PROVIDER, system, user, safeOnChunk)
+    result = await generateWithProvider(provider, system, user, safeOnChunk, model)
   } catch (primaryErr) {
-    const fallback = FALLBACK_PROVIDER !== PRIMARY_PROVIDER ? FALLBACK_PROVIDER : null
-    if (!fallback) throw primaryErr
+    // Claude is the universal fallback — only retry if we weren't already using it
+    if (provider === 'claude') throw primaryErr
 
     console.warn(
-      `[generate] Primary provider "${PRIMARY_PROVIDER}" failed — switching to "${fallback}".`,
-      primaryErr instanceof Error ? primaryErr.message : primaryErr
+      `[generate] ${provider} failed (plan="${plan ?? 'free'}") — falling back to Claude.`,
+      primaryErr instanceof Error ? primaryErr.message : primaryErr,
     )
 
-    // Reset accumulated content before fallback attempt
-    fullContent = ''
-    usedProvider = fallback
-    result = await generateWithProvider(fallback, system, user, safeOnChunk)
+    fullContent  = ''        // reset accumulated content before retry
+    usedProvider = 'claude'
+    result       = await generateWithProvider('claude', system, user, safeOnChunk, CLAUDE_FALLBACK_MODEL)
   }
 
   return {
@@ -58,13 +64,14 @@ export async function generatePolicy(
 }
 
 export async function generateAllPolicies(
-  questionnaire: Questionnaire
+  questionnaire: Questionnaire,
+  plan?:         string | null,
 ): Promise<Record<PolicyType, GenerationResult>> {
   const results: Partial<Record<PolicyType, GenerationResult>> = {}
   const types: PolicyType[] = ['privacy', 'tos', 'cookie', 'refund']
 
   for (const policyType of types) {
-    results[policyType] = await generatePolicy(policyType, questionnaire)
+    results[policyType] = await generatePolicy(policyType, questionnaire, undefined, plan)
 
     // 500ms cooldown between generations to avoid rate limit bursts
     if (policyType !== 'refund') {

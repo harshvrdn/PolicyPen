@@ -1,7 +1,13 @@
 // ============================================================
 // PolicyPen — Generation API Route
 // POST /api/generate
-// Auth → plan check → Claude stream → Supabase save → SSE
+// Auth → plan check → LLM stream (plan-gated) → Supabase save → SSE
+//
+// Provider per plan:
+//   free / starter → OpenRouter (Gemma free / Gemini MM free)
+//   builder        → OpenAI GPT-5
+//   studio         → Claude
+//   fallback       → Claude (on any provider failure)
 // ============================================================
 
 import { NextRequest } from 'next/server'
@@ -112,7 +118,8 @@ export async function POST(req: NextRequest) {
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ chunk })}\n\n`)
             )
-          }
+          },
+          dbUser.plan,
         )
 
         // ── 6. Save completed policy ────────────────────────
