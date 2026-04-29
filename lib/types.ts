@@ -112,4 +112,5 @@ export interface GenerationResult {
   jurisdictions: Jurisdiction[]
   clauses_activated: string[]
   duration_ms: number
+  provider?: string
 }

@@ -1,65 +1,59 @@
 // ============================================================
-// PolicyPen — Claude API Integration
-// Streaming generation with cost tracking
+// PolicyPen — Policy Generation Entry Point
+// Provider: Claude (primary) → OpenRouter (fallback)
+// Override via LLM_PROVIDER / LLM_FALLBACK_PROVIDER env vars
 // ============================================================
 
-import Anthropic from '@anthropic-ai/sdk'
 import type { GenerationResult, PolicyType, Questionnaire } from '@/lib/types'
 import { buildPrompt } from '@/prompts/builder'
+import { generateWithProvider, resolveProvider, type LLMProvider } from '@/lib/llm/providers'
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-})
-
-// claude-sonnet-4 pricing (per 1K tokens)
-const PRICING = {
-  input_per_1k:  0.003,
-  output_per_1k: 0.015,
-}
+const PRIMARY_PROVIDER: LLMProvider  = resolveProvider(process.env.LLM_PROVIDER)
+const FALLBACK_PROVIDER: LLMProvider = resolveProvider(process.env.LLM_FALLBACK_PROVIDER ?? 'openrouter')
 
 export async function generatePolicy(
   policyType: PolicyType,
   questionnaire: Questionnaire,
   onStream?: (chunk: string) => void
 ): Promise<GenerationResult> {
-  const start = Date.now()
   const { system, user, metadata } = buildPrompt(policyType, questionnaire)
 
   let fullContent = ''
-
-  const stream = await client.messages.stream({
-    model:      'claude-sonnet-4-20250514',
-    max_tokens: 4096,
-    system,
-    messages: [{ role: 'user', content: user }],
-  })
-
-  for await (const chunk of stream) {
-    if (
-      chunk.type === 'content_block_delta' &&
-      chunk.delta.type === 'text_delta'
-    ) {
-      fullContent += chunk.delta.text
-      onStream?.(chunk.delta.text)  // → SSE to client
-    }
+  const safeOnChunk = (text: string) => {
+    fullContent += text
+    onStream?.(text)
   }
 
-  const finalMsg = await stream.finalMessage()
-  const { input_tokens, output_tokens } = finalMsg.usage
+  // Try primary, fall back on any error
+  let result
+  let usedProvider = PRIMARY_PROVIDER
+  try {
+    result = await generateWithProvider(PRIMARY_PROVIDER, system, user, safeOnChunk)
+  } catch (primaryErr) {
+    const fallback = FALLBACK_PROVIDER !== PRIMARY_PROVIDER ? FALLBACK_PROVIDER : null
+    if (!fallback) throw primaryErr
 
-  const cost =
-    (input_tokens  / 1000) * PRICING.input_per_1k +
-    (output_tokens / 1000) * PRICING.output_per_1k
+    console.warn(
+      `[generate] Primary provider "${PRIMARY_PROVIDER}" failed — switching to "${fallback}".`,
+      primaryErr instanceof Error ? primaryErr.message : primaryErr
+    )
+
+    // Reset accumulated content before fallback attempt
+    fullContent = ''
+    usedProvider = fallback
+    result = await generateWithProvider(fallback, system, user, safeOnChunk)
+  }
 
   return {
     html:              fullContent,
     policy_type:       policyType,
-    tokens_input:      input_tokens,
-    tokens_output:     output_tokens,
-    cost_usd:          Math.round(cost * 10000) / 10000,
+    tokens_input:      result.tokens_input,
+    tokens_output:     result.tokens_output,
+    cost_usd:          result.cost_usd,
     jurisdictions:     metadata.jurisdictions,
     clauses_activated: metadata.clauses_activated,
-    duration_ms:       Date.now() - start,
+    duration_ms:       result.duration_ms,
+    provider:          usedProvider,
   }
 }
 
