@@ -451,6 +451,10 @@ export type Database = {
         Args: { p_product_id: string; p_user_id: string }
         Returns: Json
       }
+      decrement_products_count: {
+        Args: { p_clerk_id: string }
+        Returns: undefined
+      }
       generate_slug: { Args: { name: string }; Returns: string }
       get_current_policy: {
         Args: {

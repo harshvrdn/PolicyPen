@@ -619,13 +619,37 @@ export async function archivePolicy(policyId: string): Promise<void> {
   if (error) throw new Error(`[DAL:archivePolicy] ${error.message}`)
 }
 
-/** Deactivate a product (soft-delete: is_active → false) */
+/** Deactivate a product (soft-delete: is_active → false) and keep products_count accurate */
 export async function deactivateProduct(productId: string): Promise<void> {
-  const supabase = await createServerClient()
+  const supabase = createServiceClient()
+
+  // Grab the owning user before deactivating so we can resync products_count
+  const { data: product } = await supabase
+    .from("products")
+    .select("user_id, is_active")
+    .eq("id", productId)
+    .single()
+
   const { error } = await supabase
     .from("products")
     .update({ is_active: false, updated_at: new Date().toISOString() })
     .eq("id", productId)
 
   if (error) throw new Error(`[DAL:deactivateProduct] ${error.message}`)
+
+  // Resync products_count to the true active count (avoids drift vs arithmetic decrement)
+  if (product?.user_id) {
+    const { count } = await supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", product.user_id)
+      .eq("is_active", true)
+
+    try {
+      await supabase
+        .from("users")
+        .update({ products_count: count ?? 0 })
+        .eq("id", product.user_id)
+    } catch {}
+  }
 }
