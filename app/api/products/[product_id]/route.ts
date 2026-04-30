@@ -8,6 +8,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import { deactivateProduct } from "@/lib/db/dal"
+import { createServiceClient } from "@/lib/supabase/client"
 
 export async function DELETE(
   _req: Request,
@@ -22,6 +23,26 @@ export async function DELETE(
 
   try {
     await deactivateProduct(product_id)
+
+    // Decrement products_count so plan limit check stays accurate after deletion
+    const supabase = createServiceClient()
+    await supabase.rpc("decrement_products_count", { p_clerk_id: userId }).catch(() => {
+      // Fall back to manual decrement if RPC doesn't exist
+      supabase
+        .from("users")
+        .select("products_count")
+        .eq("clerk_id", userId)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            supabase
+              .from("users")
+              .update({ products_count: Math.max(0, (data.products_count ?? 1) - 1) })
+              .eq("clerk_id", userId)
+          }
+        })
+    })
+
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error("[api:delete-product]", err)
