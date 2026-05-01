@@ -42,6 +42,7 @@ const isProtectedRoute = createRouteMatcher([
   "/api/generate(.*)",
   "/api/products(.*)",
   "/api/policies(.*)",
+  "/api/checkout(.*)",
 ])
 
 // ─── Custom domain detection ──────────────────────────────────────────────
