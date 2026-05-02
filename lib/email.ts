@@ -4,6 +4,15 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL ?? "noreply@policypen.io"
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://policypen.io"
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
+
 function baseTemplate(body: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -36,7 +45,7 @@ function baseTemplate(body: string): string {
 export async function sendWelcomeEmail(to: string, firstName: string | null): Promise<void> {
   if (!process.env.RESEND_API_KEY) return
 
-  const name = firstName ?? "there"
+  const name = escapeHtml(firstName ?? "there")
   const html = baseTemplate(`
     <h1>Welcome to PolicyPen, ${name}.</h1>
     <p>You're all set. PolicyPen generates legally-aware privacy policies, terms of service, cookie policies, and refund policies for your products — tailored to the jurisdictions you operate in.</p>
@@ -59,8 +68,8 @@ export async function sendPaymentConfirmationEmail(
 ): Promise<void> {
   if (!process.env.RESEND_API_KEY) return
 
-  const name = firstName ?? "there"
-  const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1)
+  const name = escapeHtml(firstName ?? "there")
+  const planLabel = escapeHtml(plan.charAt(0).toUpperCase() + plan.slice(1))
   const html = baseTemplate(`
     <h1>Your ${planLabel} plan is active, ${name}.</h1>
     <p>Payment confirmed. Your PolicyPen account has been upgraded to the <strong>${planLabel}</strong> plan.</p>
@@ -95,15 +104,17 @@ export async function sendPolicyReadyEmail(
 ): Promise<void> {
   if (!process.env.RESEND_API_KEY) return
 
-  const name = firstName ?? "there"
-  const typeLabel = policyType
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase())
+  const name = escapeHtml(firstName ?? "there")
+  const typeLabel = escapeHtml(
+    policyType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  )
+  const safeProductName = escapeHtml(productName)
+  const safeProductUrl  = /^https?:\/\//i.test(productUrl) ? productUrl : `${APP_URL}/dashboard`
 
   const html = baseTemplate(`
     <h1>Your ${typeLabel} is ready, ${name}.</h1>
-    <p>We've generated a <strong>${typeLabel}</strong> for <strong>${productName}</strong>. It's live and ready to share or embed on your website.</p>
-    <a href="${productUrl}" class="btn">View your policy →</a>
+    <p>We've generated a <strong>${typeLabel}</strong> for <strong>${safeProductName}</strong>. It's live and ready to share or embed on your website.</p>
+    <a href="${safeProductUrl}" class="btn">View your policy →</a>
     <p>From your product page you can export as HTML or Markdown, copy a hosted link, or regenerate at any time.</p>
   `)
 
@@ -129,9 +140,9 @@ export async function sendLawUpdateEmail(
     .map(
       (u) => `
       <div style="padding:14px 0;border-bottom:1px solid #e4dfd3;">
-        <div style="font-size:13px;font-weight:600;color:#1c1810;margin-bottom:4px;">${u.title}</div>
-        <div style="font-size:12px;color:#7a7060;margin-bottom:6px;">${u.regulation} · ${u.severity}</div>
-        <div style="font-size:13px;color:#3a3428;">${u.summary}</div>
+        <div style="font-size:13px;font-weight:600;color:#1c1810;margin-bottom:4px;">${escapeHtml(u.title)}</div>
+        <div style="font-size:12px;color:#7a7060;margin-bottom:6px;">${escapeHtml(u.regulation)} · ${escapeHtml(u.severity)}</div>
+        <div style="font-size:13px;color:#3a3428;">${escapeHtml(u.summary)}</div>
       </div>`
     )
     .join("")
