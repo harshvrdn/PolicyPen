@@ -12,16 +12,22 @@ import { auth, currentUser } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import DodoPayments from "dodopayments"
 
-const PRICE_IDS: Record<string, string> = {
-  starter: process.env.DODO_PRICE_ID_STARTER!,
-  builder: process.env.DODO_PRICE_ID_BUILDER!,
-  studio:  process.env.DODO_PRICE_ID_STUDIO!,
-}
-
 export async function POST(request: Request) {
   const { userId } = await auth()
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const apiKey = process.env.DODO_PAYMENTS_API_KEY
+  if (!apiKey) {
+    console.error("[checkout] DODO_PAYMENTS_API_KEY is not set")
+    return NextResponse.json({ error: "Payment provider not configured" }, { status: 500 })
+  }
+
+  const PRICE_IDS: Record<string, string | undefined> = {
+    starter: process.env.DODO_PRICE_ID_STARTER,
+    builder: process.env.DODO_PRICE_ID_BUILDER,
+    studio:  process.env.DODO_PRICE_ID_STUDIO,
   }
 
   let body: { plan: string }
@@ -42,7 +48,7 @@ export async function POST(request: Request) {
   const name = [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(" ") || "Customer"
 
   const client = new DodoPayments({
-    bearerToken: process.env.DODO_PAYMENTS_API_KEY!,
+    bearerToken: apiKey,
     environment: (process.env.DODO_PAYMENTS_ENVIRONMENT ?? "live_mode") as "live_mode" | "test_mode",
   })
 

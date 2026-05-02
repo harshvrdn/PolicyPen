@@ -1,12 +1,16 @@
 /**
  * GET /api/debug/supabase
  * Temporary diagnostic endpoint — shows Supabase connectivity status.
- * Protected by CLERK_SECRET_KEY presence (server-only env var).
+ * Only available in development; returns 404 in production.
  */
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
 export async function GET() {
+  if (process.env.NODE_ENV !== "development") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
   const url     = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anon    = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY
