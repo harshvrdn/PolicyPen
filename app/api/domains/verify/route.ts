@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import { createServiceClient } from "@/lib/supabase/client"
+import { getCurrentUser } from "@/lib/db/dal"
 import dns from "dns"
 
 export async function POST(request: Request) {
@@ -17,9 +18,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "product_id is required" }, { status: 400 })
     }
 
+    const dbUser = await getCurrentUser(userId)
+    if (!dbUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
     const supabase = createServiceClient()
 
-    // Verify ownership and fetch current domain
+    // Verify ownership — compare internal UUIDs, not Clerk ID vs DB UUID
     const { data: product } = await supabase
       .from("products")
       .select("id, user_id, custom_domain")
@@ -29,7 +35,7 @@ export async function POST(request: Request) {
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 })
     }
-    if (product.user_id !== userId) {
+    if (product.user_id !== dbUser.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
     if (!product.custom_domain) {

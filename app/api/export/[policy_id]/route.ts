@@ -72,6 +72,11 @@ export async function GET(
   const { policy_id } = await params
   const format = req.nextUrl.searchParams.get("format") ?? "html"
 
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!UUID_REGEX.test(policy_id)) {
+    return NextResponse.json({ error: "Invalid policy ID" }, { status: 400 })
+  }
+
   if (format !== "html" && format !== "markdown") {
     return NextResponse.json({ error: "format must be html or markdown" }, { status: 400 })
   }

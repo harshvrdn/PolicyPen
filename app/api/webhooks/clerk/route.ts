@@ -180,17 +180,21 @@ export async function POST(request: Request) {
           .eq("clerk_id", data.id)
           .single()
 
-        if (userData?.id) {
-          const { error } = await supabase
-            .from("products")
-            .update({ is_active: false })
-            .eq("user_id", userData.id)
-
-          if (error) {
-            console.warn(`[clerk-webhook] user.deleted soft-delete warning:`, error)
-          }
+        if (!userData?.id) {
+          console.log(`[clerk-webhook] user.deleted: ${data.id} not found in DB — nothing to deactivate`)
+          break
         }
-        console.log(`[clerk-webhook] user.deleted: ${data.id} → products deactivated`)
+
+        const { error } = await supabase
+          .from("products")
+          .update({ is_active: false })
+          .eq("user_id", userData.id)
+
+        if (error) {
+          console.warn(`[clerk-webhook] user.deleted soft-delete warning:`, error)
+        } else {
+          console.log(`[clerk-webhook] user.deleted: ${data.id} → products deactivated`)
+        }
         break
       }
 

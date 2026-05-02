@@ -294,3 +294,23 @@ CREATE POLICY "policy_acknowledgements_select_own" ON public.policy_acknowledgem
         AND u.clerk_id = auth.uid()::text
     )
   );
+
+-- Block direct inserts from authenticated JWT holders;
+-- all writes go through the service-role /api/ack route.
+CREATE POLICY "policy_acknowledgements_insert_deny_direct"
+  ON public.policy_acknowledgements
+  FOR INSERT
+  WITH CHECK (false);
+
+-- Product owners can delete acknowledgements for their own products
+CREATE POLICY "policy_acknowledgements_delete_own"
+  ON public.policy_acknowledgements
+  FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.products p
+      JOIN public.users u ON u.id = p.user_id
+      WHERE p.id = policy_acknowledgements.product_id
+        AND u.clerk_id = auth.uid()::text
+    )
+  );
