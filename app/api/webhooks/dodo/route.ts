@@ -101,11 +101,16 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString(),
       }
 
+      if (!clerkUserId && !customerId) {
+        console.error("[dodo-webhook] payment.succeeded: no clerk_user_id or customer_id to identify user", event.data)
+        break
+      }
+
       // Prefer matching by clerk_id from checkout metadata (works for new customers
       // who don't have dodo_customer_id set yet); fall back to dodo_customer_id.
       const query = clerkUserId
         ? supabase.from("users").update(updates).eq("clerk_id", clerkUserId)
-        : supabase.from("users").update(updates).eq("dodo_customer_id", customerId!)
+        : supabase.from("users").update(updates).eq("dodo_customer_id", customerId as string)
 
       const { error } = await query
 
@@ -116,7 +121,7 @@ export async function POST(request: Request) {
 
         // Send payment confirmation email
         const lookupCol = clerkUserId ? "clerk_id" : "dodo_customer_id"
-        const lookupVal = clerkUserId ?? customerId!
+        const lookupVal = (clerkUserId ?? customerId) as string
         const { data: userData } = await supabase
           .from("users")
           .select("email, full_name")
@@ -125,7 +130,9 @@ export async function POST(request: Request) {
 
         if (userData?.email) {
           const firstName = userData.full_name?.split(" ")[0] ?? null
-          sendPaymentConfirmationEmail(userData.email, firstName, plan.tier).catch(() => {})
+          sendPaymentConfirmationEmail(userData.email, firstName, plan.tier).catch((e) => {
+            console.error("[dodo-webhook] Failed to send payment confirmation email:", e)
+          })
         }
       }
       break
@@ -159,9 +166,14 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString(),
       }
 
+      if (!clerkUserId && !customerId) {
+        console.error("[dodo-webhook] subscription.active: no clerk_user_id or customer_id to identify user", event.data)
+        break
+      }
+
       const query = clerkUserId
         ? supabase.from("users").update(updates).eq("clerk_id", clerkUserId)
-        : supabase.from("users").update(updates).eq("dodo_customer_id", customerId!)
+        : supabase.from("users").update(updates).eq("dodo_customer_id", customerId as string)
 
       const { error } = await query
 

@@ -73,6 +73,12 @@ export async function PATCH(request: Request) {
       .single()
 
     if (error) {
+      if (error.code === "23505") {
+        return NextResponse.json(
+          { error: "This domain is already registered to another product" },
+          { status: 409 }
+        )
+      }
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 

@@ -3,6 +3,8 @@ import { NextResponse } from "next/server"
 import { getCurrentUser, createProduct, generateProductSlug, completeOnboarding } from "@/lib/db/dal"
 import { createServiceClient } from "@/lib/supabase/client"
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 function slugify(name: string): string {
   return name
     .toLowerCase()
@@ -94,6 +96,12 @@ export async function POST(request: Request) {
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json({ error: "Product name is required." }, { status: 400 })
+    }
+
+    if (contact_email && typeof contact_email === "string" && contact_email.trim()) {
+      if (!EMAIL_REGEX.test(contact_email.trim())) {
+        return NextResponse.json({ error: "Invalid email format for contact_email." }, { status: 400 })
+      }
     }
 
     // Use client-generated slug when provided (belt-and-suspenders); otherwise
