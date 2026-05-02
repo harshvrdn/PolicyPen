@@ -112,6 +112,14 @@ CREATE UNIQUE INDEX IF NOT EXISTS policies_one_current_version_per_type
   ON public.policies(product_id, policy_type)
   WHERE is_current_version = true;
 
+-- Performance indexes for high-frequency query paths.
+-- products.slug and products.custom_domain are UNIQUE and already have
+-- implicit btree indexes; no need to add them again.
+CREATE INDEX IF NOT EXISTS idx_products_user_id      ON public.products(user_id);
+CREATE INDEX IF NOT EXISTS idx_policies_product_id   ON public.policies(product_id);
+CREATE INDEX IF NOT EXISTS idx_policies_user_id      ON public.policies(user_id);
+CREATE INDEX IF NOT EXISTS idx_law_updates_is_published ON public.law_updates(is_published);
+
 -- Law updates table
 CREATE TABLE public.law_updates (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
