@@ -95,8 +95,8 @@ export const EMBED_WIDGET_SCRIPT = (slug: string, theme: 'light' | 'dark' = 'lig
 <!-- PolicyPen Widget — paste before </body> -->
 <script>
 (function() {
-  var slug = '${slug}';
-  var theme = '${theme}';
+  var slug = ${JSON.stringify(slug)};
+  var theme = ${JSON.stringify(theme)};
   var base = 'https://policypen.io';
 
   // Create widget container
@@ -131,15 +131,17 @@ export const EMBED_WIDGET_SCRIPT = (slug: string, theme: 'light' | 'dark' = 'lig
 `
 
 // Inline embed: renders specific policy document in an iframe
-export const IFRAME_EMBED = (slug: string, docType: string) => `
-<iframe
-  src="https://policypen.io/p/${slug}?doc=${docType}&embed=1"
+export const IFRAME_EMBED = (slug: string, docType: string) => {
+  const safeSlug    = encodeURIComponent(slug)
+  const safeDocType = encodeURIComponent(docType)
+  return `<iframe
+  src="https://policypen.io/p/${safeSlug}?doc=${safeDocType}&embed=1"
   style="width: 100%; border: none; min-height: 600px;"
-  title="${docType} policy"
+  title="${safeDocType} policy"
   loading="lazy"
   onload="this.style.minHeight = this.contentDocument.body.scrollHeight + 'px'"
 ></iframe>
-`
+`}
 
 // ─────────────────────────────────────────────────────────────
 // FILE: lib/policy-version.ts
