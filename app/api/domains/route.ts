@@ -22,6 +22,11 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "product_id is required" }, { status: 400 })
     }
 
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!UUID_REGEX.test(product_id)) {
+      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
+    }
+
     const dbUser = await getCurrentUser(userId)
     if (!dbUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })

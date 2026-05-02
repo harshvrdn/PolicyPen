@@ -20,6 +20,11 @@ export async function DELETE(
 
   const { product_id } = await params
 
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!UUID_REGEX.test(product_id)) {
+    return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
+  }
+
   try {
     await deactivateProduct(product_id)
     return NextResponse.json({ success: true })

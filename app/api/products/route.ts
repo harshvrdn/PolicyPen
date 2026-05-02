@@ -97,6 +97,21 @@ export async function POST(request: Request) {
     if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json({ error: "Product name is required." }, { status: 400 })
     }
+    if (typeof name === "string" && name.length > 200) {
+      return NextResponse.json({ error: "Product name must be 200 characters or fewer." }, { status: 400 })
+    }
+    if (description && typeof description === "string" && description.length > 2000) {
+      return NextResponse.json({ error: "Description must be 2000 characters or fewer." }, { status: 400 })
+    }
+    if (website_url && typeof website_url === "string" && website_url.length > 500) {
+      return NextResponse.json({ error: "website_url must be 500 characters or fewer." }, { status: 400 })
+    }
+    if (company_legal_name && typeof company_legal_name === "string" && company_legal_name.length > 300) {
+      return NextResponse.json({ error: "company_legal_name must be 300 characters or fewer." }, { status: 400 })
+    }
+    if (company_address && typeof company_address === "string" && company_address.length > 500) {
+      return NextResponse.json({ error: "company_address must be 500 characters or fewer." }, { status: 400 })
+    }
 
     if (contact_email && typeof contact_email === "string" && contact_email.trim()) {
       if (!EMAIL_REGEX.test(contact_email.trim())) {

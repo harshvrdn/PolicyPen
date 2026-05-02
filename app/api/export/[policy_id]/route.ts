@@ -19,7 +19,9 @@ function htmlToMarkdown(html: string): string {
     .replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, "**$1**")
     .replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, "_$1_")
     .replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, "_$1_")
-    .replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, "[$2]($1)")
+    .replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href: string, text: string) =>
+      /^https?:\/\//i.test(href) || href.startsWith('/') ? `[${text}](${href})` : text
+    )
     .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, "- $1\n")
     .replace(/<\/?(ul|ol)[^>]*>/gi, "\n")
     .replace(/<br\s*\/?>/gi, "\n")

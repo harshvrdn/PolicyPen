@@ -34,6 +34,25 @@ const POLICY_TYPE_MAP: Record<string, PolicyType> = {
   refund:   'refund_policy',
 }
 
+// Cap string fields at 500 chars and array fields at 50 items so that
+// client-supplied questionnaire overrides cannot inject oversized content
+// into the Claude prompt or carry prompt-injection payloads.
+function sanitiseQuestionnaire(raw: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const [key, val] of Object.entries(raw)) {
+    if (typeof val === 'string') {
+      out[key] = val.slice(0, 500)
+    } else if (Array.isArray(val)) {
+      out[key] = val.slice(0, 50).map(item =>
+        typeof item === 'string' ? item.slice(0, 200) : item
+      )
+    } else {
+      out[key] = val
+    }
+  }
+  return out
+}
+
 export async function POST(req: NextRequest) {
   // ── 1. Auth ────────────────────────────────────────────────
   const { userId } = await auth()
@@ -54,6 +73,10 @@ export async function POST(req: NextRequest) {
 
     if (!productId) {
       return Response.json({ error: 'product_id is required' }, { status: 400 })
+    }
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!UUID_REGEX.test(productId)) {
+      return Response.json({ error: 'Invalid product_id format' }, { status: 400 })
     }
     if (!POLICY_TYPE_MAP[policyTypeRaw]) {
       return Response.json({ error: 'Invalid policy_type. Use: privacy, tos, cookie, refund' }, { status: 400 })
@@ -124,8 +147,9 @@ export async function POST(req: NextRequest) {
     liability_cap:         '12_months',
     termination_policy:    'end_of_period',
 
-    // Allow anything passed from the client to override the above
-    ...clientQuestionnaire as Partial<Questionnaire>,
+    // Allow client overrides, but cap field sizes to prevent prompt injection
+    // and oversized payloads from reaching the Claude prompt builder.
+    ...sanitiseQuestionnaire(clientQuestionnaire),
   }
 
   // ── 3. Get user + plan check ──────────────────────────────
