@@ -184,9 +184,10 @@ ALTER TABLE public.policy_acknowledgements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "users_select_own" ON public.users
   FOR SELECT USING (clerk_id = auth.uid()::text);
 
-CREATE POLICY "users_update_own" ON public.users
-  FOR UPDATE USING (clerk_id = auth.uid()::text)
-  WITH CHECK (clerk_id = auth.uid()::text);
+-- users UPDATE policy intentionally omitted: all writes to this table go through
+-- service-role callers (Clerk/Dodo webhooks, product-creation safety-net) that
+-- bypass RLS. An authenticated UPDATE policy would let users self-escalate their
+-- own plan, subscription_status, and max_products fields.
 
 -- Service role (Clerk webhook, billing) bypasses RLS — no INSERT/DELETE policy needed for anon/authenticated
 

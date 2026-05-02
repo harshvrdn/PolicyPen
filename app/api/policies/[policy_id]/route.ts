@@ -20,6 +20,11 @@ export async function DELETE(
 
   const { policy_id } = await params
 
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!UUID_REGEX.test(policy_id)) {
+    return NextResponse.json({ error: "Invalid policy ID" }, { status: 400 })
+  }
+
   try {
     await archivePolicy(policy_id)
     return NextResponse.json({ success: true })
