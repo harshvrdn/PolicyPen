@@ -1,12 +1,18 @@
 /**
  * GET /api/debug/supabase
  * Temporary diagnostic endpoint — shows Supabase connectivity status.
- * Protected by CLERK_SECRET_KEY presence (server-only env var).
+ * Requires authentication.
  */
+import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
 export async function GET() {
+  const { userId } = await auth()
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   const url     = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anon    = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY
