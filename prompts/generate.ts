@@ -11,7 +11,7 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
-// claude-sonnet-4 pricing (per 1K tokens)
+// claude-sonnet-4-6 pricing (per 1K tokens)
 const PRICING = {
   input_per_1k:  0.003,
   output_per_1k: 0.015,
@@ -28,7 +28,7 @@ export async function generatePolicy(
   let fullContent = ''
 
   const stream = await client.messages.stream({
-    model:      'claude-sonnet-4-20250514',
+    model:      'claude-sonnet-4-6',
     max_tokens: 4096,
     system,
     messages: [{ role: 'user', content: user }],
