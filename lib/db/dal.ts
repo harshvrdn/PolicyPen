@@ -58,7 +58,7 @@ export async function getUserDashboard(): Promise<UserDashboard | null> {
   return data
 }
 
-/** Update user plan (called by Stripe webhook via service client) */
+/** Update user plan (called by Dodo Payments webhook via service client) */
 export async function updateUserPlan(
   clerkId: string,
   updates: {
